@@ -8,6 +8,10 @@ import {
   getActionEVs,
   cardToBJValue,
   computeHandState,
+  aceFiveAdjustedProbs,
+  standardProbs,
+  getActionEVsWithCount,
+  createEvEngine,
 } from './ev'
 import { getCorrectAction } from './strategy'
 import type { Card } from './types'
@@ -346,5 +350,196 @@ describe('getActionEVs', () => {
       .filter(([, v]) => v !== null) as [string, number][]
     const best = validEVs.reduce((a, b) => (b[1] > a[1] ? b : a))
     expect(best[0]).toBe('STAND')
+  })
+})
+
+// ============================================
+// aceFiveAdjustedProbs tests
+// ============================================
+
+describe('aceFiveAdjustedProbs', () => {
+  it('sums to 1 for c=0', () => {
+    const probs = aceFiveAdjustedProbs(0, 300)
+    let sum = 0
+    for (let v = 1; v <= 10; v++) {
+      sum += probs[v] ?? 0
+    }
+    expect(sum).toBeCloseTo(1, 9)
+  })
+
+  it('equals standard probs when c=0', () => {
+    const adjusted = aceFiveAdjustedProbs(0, 300)
+    const standard = standardProbs()
+    for (let v = 1; v <= 10; v++) {
+      expect(adjusted[v]).toBeCloseTo(standard[v] ?? 0, 12)
+    }
+  })
+
+  it('sums to 1 for positive count', () => {
+    const probs = aceFiveAdjustedProbs(5, 200)
+    let sum = 0
+    for (let v = 1; v <= 10; v++) {
+      sum += probs[v] ?? 0
+    }
+    expect(sum).toBeCloseTo(1, 9)
+  })
+
+  it('sums to 1 for negative count', () => {
+    const probs = aceFiveAdjustedProbs(-5, 200)
+    let sum = 0
+    for (let v = 1; v <= 10; v++) {
+      sum += probs[v] ?? 0
+    }
+    expect(sum).toBeCloseTo(1, 9)
+  })
+
+  it('c>0 increases p(A) and decreases p(5)', () => {
+    const base = 1 / 13
+    const probs = aceFiveAdjustedProbs(4, 300)
+    expect(probs[1]).toBeGreaterThan(base)
+    expect(probs[5]).toBeLessThan(base)
+  })
+
+  it('c<0 decreases p(A) and increases p(5)', () => {
+    const base = 1 / 13
+    const probs = aceFiveAdjustedProbs(-4, 300)
+    expect(probs[1]).toBeLessThan(base)
+    expect(probs[5]).toBeGreaterThan(base)
+  })
+
+  it('does not change probabilities for values 2-4, 6-10', () => {
+    const standard = standardProbs()
+    const adjusted = aceFiveAdjustedProbs(5, 200)
+    for (const v of [2, 3, 4, 6, 7, 8, 9, 10]) {
+      expect(adjusted[v]).toBeCloseTo(standard[v] ?? 0, 12)
+    }
+  })
+
+  it('clamp: extreme positive count keeps all probs non-negative and sum=1', () => {
+    // count = 100, remaining = 50 -> adjustment = 100/100 = 1.0
+    // p(5) = 1/13 - 1.0 < 0 -> clamp
+    const probs = aceFiveAdjustedProbs(100, 50)
+    let sum = 0
+    for (let v = 1; v <= 10; v++) {
+      const p = probs[v] ?? 0
+      expect(p).toBeGreaterThanOrEqual(0)
+      sum += p
+    }
+    expect(sum).toBeCloseTo(1, 9)
+  })
+
+  it('clamp: extreme negative count keeps all probs non-negative and sum=1', () => {
+    const probs = aceFiveAdjustedProbs(-100, 50)
+    let sum = 0
+    for (let v = 1; v <= 10; v++) {
+      const p = probs[v] ?? 0
+      expect(p).toBeGreaterThanOrEqual(0)
+      sum += p
+    }
+    expect(sum).toBeCloseTo(1, 9)
+  })
+
+  it('remaining <= 0 returns standard probs', () => {
+    const adjusted = aceFiveAdjustedProbs(5, 0)
+    const standard = standardProbs()
+    for (let v = 1; v <= 10; v++) {
+      expect(adjusted[v]).toBeCloseTo(standard[v] ?? 0, 12)
+    }
+  })
+})
+
+// ============================================
+// getActionEVsWithCount tests
+// ============================================
+
+describe('getActionEVsWithCount', () => {
+  it('c=0 matches getActionEVs for hard 16 vs 10', () => {
+    const base = getActionEVs(
+      [card('H', 9), card('S', 7)],
+      card('D', 10),
+    )
+    const adjusted = getActionEVsWithCount(
+      [card('H', 9), card('S', 7)],
+      card('D', 10),
+      0, 300,
+    )
+    for (const action of ['HIT', 'STAND', 'DOUBLE'] as const) {
+      expect(adjusted[action]).toBeCloseTo(base[action]!, 9)
+    }
+  })
+
+  it('c=0 matches getActionEVs for soft 17 vs 6', () => {
+    const base = getActionEVs(
+      [card('H', 1), card('S', 6)],
+      card('D', 6),
+    )
+    const adjusted = getActionEVsWithCount(
+      [card('H', 1), card('S', 6)],
+      card('D', 6),
+      0, 300,
+    )
+    for (const action of ['HIT', 'STAND', 'DOUBLE'] as const) {
+      expect(adjusted[action]).toBeCloseTo(base[action]!, 9)
+    }
+  })
+
+  it('c=0 matches getActionEVs for 8-8 vs 6 (including SPLIT)', () => {
+    const base = getActionEVs(
+      [card('H', 8), card('S', 8)],
+      card('D', 6),
+    )
+    const adjusted = getActionEVsWithCount(
+      [card('H', 8), card('S', 8)],
+      card('D', 6),
+      0, 300,
+    )
+    for (const action of ['HIT', 'STAND', 'DOUBLE', 'SPLIT'] as const) {
+      expect(adjusted[action]).toBeCloseTo(base[action]!, 9)
+    }
+  })
+
+  it('A-rich (high count) increases doubleEV for 11 vs 6', () => {
+    // High count means fewer 5s remain. Dealer starting from 6 loses access
+    // to 6+5=11, increasing dealer bust rate. This improves double 11 EV
+    // because the doubled bet benefits from higher dealer bust probability.
+    const baseEngine = createEvEngine(standardProbs())
+    const richEngine = createEvEngine(aceFiveAdjustedProbs(4, 200))
+    const baseEV = baseEngine.doubleEV(11, false, 6)
+    const richEV = richEngine.doubleEV(11, false, 6)
+    expect(richEV).toBeGreaterThan(baseEV)
+  })
+
+  it('A-rich (high count) changes hitEV for hard 16 vs 10', () => {
+    // High count -> more Aces remaining -> changes both player and dealer distributions
+    // The net effect on hit EV for hard 16 vs 10 is negative because the dealer also
+    // benefits significantly from more Aces. We verify the adjustment has an effect.
+    const baseEngine = createEvEngine(standardProbs())
+    const richEngine = createEvEngine(aceFiveAdjustedProbs(6, 200))
+    const baseHitEV = baseEngine.hitEV(16, false, 10)
+    const richHitEV = richEngine.hitEV(16, false, 10)
+    expect(richHitEV).not.toBeCloseTo(baseHitEV, 3)
+  })
+
+  it('A-rich (high count) increases standEV for 20 vs 6 (dealer busts more with fewer 5s)', () => {
+    // High count -> fewer 5s remaining -> dealer with 6 upcard loses the
+    // 6+5=11 path, increasing dealer bust rate. Standing on 20 benefits
+    // from higher dealer bust probability, so stand EV increases.
+    const baseEngine = createEvEngine(standardProbs())
+    const richEngine = createEvEngine(aceFiveAdjustedProbs(6, 200))
+    const baseStandEV = baseEngine.standEV(20, 6)
+    const richStandEV = richEngine.standEV(20, 6)
+    expect(richStandEV).toBeGreaterThan(baseStandEV)
+  })
+
+  it('5-rich (negative count) has more 5s remaining', () => {
+    // Negative count -> more 5s remaining -> p(5) increases
+    // Drawing a 5 on hard 16 -> 21 (best outcome!)
+    // But also dealer benefits from 5s. Complex.
+    // Let's verify hit on hard 11 is different with negative count.
+    const baseEngine = createEvEngine(standardProbs())
+    const fiveRichEngine = createEvEngine(aceFiveAdjustedProbs(-6, 200))
+    const baseHitEV = baseEngine.hitEV(11, false, 6)
+    const fiveRichHitEV = fiveRichEngine.hitEV(11, false, 6)
+    expect(fiveRichHitEV).not.toBeCloseTo(baseHitEV, 3)
   })
 })
