@@ -108,29 +108,29 @@ export function QuizPage() {
   }, [])
 
   const handleAnswer = useCallback((action: Action) => {
-    setQuiz((prev) => {
-      const info = computeEVInfo(prev.playerCards, prev.dealerCard, action)
-      setEVInfo(info)
+    if (quiz.answered) return
 
-      // Update cumulative
-      if (info.selectedEV !== null) {
-        const newCumulative: CumulativeEV = {
-          count: cumulativeRef.current.count + 1,
-          totalSelectedEV: cumulativeRef.current.totalSelectedEV + info.selectedEV,
-          totalOptimalEV: cumulativeRef.current.totalOptimalEV + info.optimalEV,
-        }
-        cumulativeRef.current = newCumulative
-        setCumulative(newCumulative)
-      }
+    const info = computeEVInfo(quiz.playerCards, quiz.dealerCard, action)
+    setEVInfo(info)
 
-      return {
-        ...prev,
-        answered: true,
-        selectedAction: action,
-        isCorrect: action === prev.correctAction,
+    // Update cumulative
+    if (info.selectedEV !== null) {
+      const newCumulative: CumulativeEV = {
+        count: cumulativeRef.current.count + 1,
+        totalSelectedEV: cumulativeRef.current.totalSelectedEV + info.selectedEV,
+        totalOptimalEV: cumulativeRef.current.totalOptimalEV + info.optimalEV,
       }
-    })
-  }, [])
+      cumulativeRef.current = newCumulative
+      setCumulative(newCumulative)
+    }
+
+    setQuiz((prev) => ({
+      ...prev,
+      answered: true,
+      selectedAction: action,
+      isCorrect: action === prev.correctAction,
+    }))
+  }, [quiz.playerCards, quiz.dealerCard, quiz.answered])
 
   const handleRetry = useCallback(() => {
     setQuiz(createQuizState())
