@@ -135,8 +135,13 @@ function computeEVInfo(
 }
 
 export function QuizPage() {
-  const shoeRef = useRef<Shoe>(createShoe())
-  const [quiz, setQuiz] = useState<QuizState>(() => createQuizStateFromDeal(shoeRef.current.deal()))
+  const shoeRef = useRef<Shoe | null>(null)
+  const initialDealRef = useRef<DealResult | null>(null)
+  if (shoeRef.current === null) {
+    shoeRef.current = createShoe()
+    initialDealRef.current = shoeRef.current.deal()
+  }
+  const [quiz, setQuiz] = useState<QuizState>(() => createQuizStateFromDeal(initialDealRef.current!))
   const [showTable, setShowTable] = useState(false)
   const [evInfo, setEVInfo] = useState<EVInfo | null>(null)
   const [betLevel, setBetLevel] = useState<BetLevel>(loadBetLevel)
@@ -163,16 +168,14 @@ export function QuizPage() {
     // Determine bet multiplier
     const betMultiplier = betLevel === 'x2' ? 2 : 1
 
-    // Update cumulative EV (scaled by bet multiplier)
-    if (info.selectedEV !== null) {
-      const newCumulative: CumulativeEV = {
-        count: cumulativeRef.current.count + 1,
-        totalSelectedEV: cumulativeRef.current.totalSelectedEV + info.selectedEV * betMultiplier,
-        totalOptimalEV: cumulativeRef.current.totalOptimalEV + info.optimalEV * betMultiplier,
-      }
-      cumulativeRef.current = newCumulative
-      setCumulative(newCumulative)
+    // Update cumulative (count always increments; EV sums only when available)
+    const newCumulative: CumulativeEV = {
+      count: cumulativeRef.current.count + 1,
+      totalSelectedEV: cumulativeRef.current.totalSelectedEV + (info.selectedEV !== null ? info.selectedEV * betMultiplier : 0),
+      totalOptimalEV: cumulativeRef.current.totalOptimalEV + info.optimalEV * betMultiplier,
     }
+    cumulativeRef.current = newCumulative
+    setCumulative(newCumulative)
 
     // Update bet stats
     const recommendedBet = getRecommendedBet(quiz.preDealCount)
@@ -193,7 +196,7 @@ export function QuizPage() {
   }, [quiz.playerCards, quiz.dealerCard, quiz.answered, quiz.preDealCount, betLevel])
 
   const handleRetry = useCallback(() => {
-    const deal = shoeRef.current.deal()
+    const deal = shoeRef.current!.deal()
     setQuiz(createQuizStateFromDeal(deal))
     setShowTable(false)
     setEVInfo(null)
