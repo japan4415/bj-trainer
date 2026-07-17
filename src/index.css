@@ -1,0 +1,325 @@
+/* ========================================
+   Global Styles
+   ======================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0b3d0b;
+  color: #fff;
+  font-family: 'Roboto Slab', serif;
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* ========================================
+   Layout
+   ======================================== */
+
+.vegas-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #124d12;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+  min-height: 100vh;
+}
+
+/* ========================================
+   Header
+   ======================================== */
+
+.header {
+  border-bottom: 8px solid #0b3d0b;
+  padding-bottom: 15px;
+  margin-bottom: 30px;
+}
+
+.header-title {
+  color: #ffd700;
+  font-family: 'Roboto Slab', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.diamond-icon {
+  color: #ffd700;
+}
+
+.header-nav {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-link {
+  color: #f0d98c;
+  font-size: 1rem;
+  padding: 5px 10px;
+  transition: opacity 0.2s;
+}
+
+.nav-link:hover {
+  opacity: 0.8;
+}
+
+.nav-link.active {
+  font-weight: bold;
+}
+
+/* ========================================
+   Quiz Page
+   ======================================== */
+
+.quiz-page {
+  text-align: center;
+}
+
+.hand-section {
+  margin-bottom: 30px;
+}
+
+.hand-label {
+  color: #f0d98c;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.card-row {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.playing-card {
+  height: 100px;
+  width: auto;
+  aspect-ratio: 256 / 362;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s;
+  overflow: visible;
+}
+
+.playing-card:hover {
+  transform: scale(1.05);
+}
+
+/* ========================================
+   Result
+   ======================================== */
+
+.result-area {
+  margin-bottom: 20px;
+}
+
+.result-text {
+  color: #ffd700;
+  font-size: 1.3rem;
+}
+
+/* ========================================
+   Action Buttons
+   ======================================== */
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.action-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 25px;
+  font-weight: bold;
+  font-size: 1rem;
+  min-width: 120px;
+  cursor: pointer;
+  color: #fff;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+}
+
+.btn-hit {
+  background-color: #28a745;
+}
+.btn-hit:hover {
+  background-color: #218838;
+}
+
+.btn-stand {
+  background-color: #dc3545;
+}
+.btn-stand:hover {
+  background-color: #c82333;
+}
+
+.btn-double {
+  background-color: #6f42c1;
+}
+.btn-double:hover {
+  background-color: #5a32a3;
+}
+
+.btn-split {
+  background-color: #ffc107;
+  color: #000;
+}
+.btn-split:hover {
+  background-color: #e0a800;
+}
+
+.btn-retry {
+  background-color: #17a2b8;
+}
+.btn-retry:hover {
+  background-color: #138496;
+}
+
+/* ========================================
+   Explanation Page
+   ======================================== */
+
+.explanation-page {
+  line-height: 1.8;
+}
+
+.explanation-text {
+  margin-bottom: 40px;
+}
+
+.explanation-text p {
+  margin-bottom: 16px;
+  color: #e0e0e0;
+}
+
+.wiki-link {
+  color: #ffd700;
+}
+
+.wiki-link:hover {
+  text-decoration: underline;
+}
+
+/* ========================================
+   Strategy Tables
+   ======================================== */
+
+.strategy-tables {
+  margin-top: 30px;
+}
+
+.strategy-table-wrapper {
+  margin-bottom: 40px;
+}
+
+.strategy-table-title {
+  color: #ffd700;
+  font-size: 1.3rem;
+  margin-bottom: 12px;
+}
+
+.strategy-table-scroll {
+  overflow-x: auto;
+}
+
+.strategy-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.strategy-table th,
+.strategy-table td {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 8px;
+  min-width: 36px;
+}
+
+.strategy-header-cell {
+  background: #0b3d0b;
+  color: #f0d98c;
+  font-weight: bold;
+}
+
+.strategy-subheader-cell {
+  background: #0b3d0b;
+  color: #f0d98c;
+  font-size: 0.75rem;
+}
+
+.strategy-row-label {
+  background: #0b3d0b;
+  color: #f0d98c;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.strategy-cell {
+  font-weight: bold;
+}
+
+.cell-hit {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.cell-stand {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.cell-double {
+  background-color: #6f42c1;
+  color: #fff;
+}
+
+.cell-split {
+  background-color: #ffc107;
+  color: #000;
+}
+
+/* ========================================
+   Mobile Responsive
+   ======================================== */
+
+@media (max-width: 600px) {
+  .vegas-container {
+    padding: 15px 10px;
+    border-radius: 0;
+  }
+
+  .header-title {
+    font-size: 1.5rem;
+  }
+
+  .playing-card {
+    height: 90px;
+  }
+
+  .action-btn {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    min-width: 80px;
+  }
+}
