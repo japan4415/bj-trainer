@@ -3,7 +3,7 @@ import type { Card as CardType, Action } from '../types'
 import { PlayingCard, CardBack } from './Card'
 import { HighlightedStrategyTable } from './StrategyTable'
 import { getCorrectAction, getStrategyLookup } from '../strategy'
-import { getActionEVs } from '../ev'
+import { getActionEVsWithCount } from '../ev'
 import { createShoe, getRecommendedBet } from '../shoe'
 import type { Shoe, BetLevel, DealResult } from '../shoe'
 
@@ -102,8 +102,10 @@ function computeEVInfo(
   playerCards: [CardType, CardType],
   dealerCard: CardType,
   selectedAction: Action,
+  currentCount: number,
+  remaining: number,
 ): EVInfo {
-  const actionEVs = getActionEVs(playerCards, dealerCard)
+  const actionEVs = getActionEVsWithCount(playerCards, dealerCard, currentCount, remaining)
 
   // Find optimal action (argmax of non-null EVs)
   let optimalAction: Action = 'HIT'
@@ -166,7 +168,7 @@ export function QuizPage() {
   const handleAnswer = useCallback((action: Action) => {
     if (quiz.answered) return
 
-    const info = computeEVInfo(quiz.playerCards, quiz.dealerCard, action)
+    const info = computeEVInfo(quiz.playerCards, quiz.dealerCard, action, quiz.currentCount, quiz.remaining)
     setEVInfo(info)
 
     // Use the locked bet level (fixed at deal time) for EV scaling and bet judgment
@@ -197,7 +199,7 @@ export function QuizPage() {
       selectedAction: action,
       isCorrect: action === prev.correctAction,
     }))
-  }, [quiz.playerCards, quiz.dealerCard, quiz.answered, quiz.preDealCount, quiz.lockedBetLevel])
+  }, [quiz.playerCards, quiz.dealerCard, quiz.answered, quiz.preDealCount, quiz.lockedBetLevel, quiz.currentCount, quiz.remaining])
 
   const handleRetry = useCallback(() => {
     const deal = shoeRef.current!.deal()
@@ -312,6 +314,9 @@ export function QuizPage() {
               </span>
             </div>
           )}
+          <div className="ev-note">
+            EVはA-5補正済み（カウント {formatCount(quiz.currentCount)} / 残り {quiz.remaining}枚）
+          </div>
         </div>
       )}
 
