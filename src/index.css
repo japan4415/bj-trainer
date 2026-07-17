@@ -197,16 +197,33 @@ a {
 }
 
 /* ========================================
-   Bet Section
+   Hand Info Bar (bet + remaining, near action area)
    ======================================== */
 
-.bet-section {
+.hand-info-bar {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.hand-info-item {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+}
+
+/* ========================================
+   Next Bet Toggle (shown after answering)
+   ======================================== */
+
+.next-bet-section {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+  gap: 0;
+  margin-top: 8px;
+  margin-bottom: 4px;
 }
 
 .bet-toggle {
@@ -217,17 +234,17 @@ a {
 
 .bet-toggle-label {
   color: #f0d98c;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   margin-right: 8px;
   font-weight: bold;
 }
 
 .bet-toggle-btn {
-  padding: 6px 16px;
+  padding: 5px 14px;
   border: 1px solid rgba(255, 215, 0, 0.4);
   background: rgba(0, 0, 0, 0.3);
   color: #ccc;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
@@ -240,21 +257,11 @@ a {
   border-radius: 0 15px 15px 0;
 }
 
-.bet-toggle-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
 .bet-toggle-active {
   background: #c5991e;
   color: #000;
   font-weight: bold;
   border-color: #ffd700;
-}
-
-.shoe-remaining {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.75rem;
 }
 
 /* ========================================

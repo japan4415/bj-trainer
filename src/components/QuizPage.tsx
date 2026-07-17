@@ -18,6 +18,8 @@ interface QuizState {
   currentCount: number
   shuffled: boolean
   remaining: number
+  /** Bet level locked in at deal time (before seeing cards) */
+  lockedBetLevel: BetLevel
 }
 
 interface CumulativeEV {
@@ -60,7 +62,7 @@ function saveBetLevel(level: BetLevel): void {
   }
 }
 
-function createQuizStateFromDeal(deal: DealResult): QuizState {
+function createQuizStateFromDeal(deal: DealResult, betLevel: BetLevel): QuizState {
   const correctAction = getCorrectAction(deal.playerCards, deal.dealerCard)
   return {
     dealerCard: deal.dealerCard,
@@ -73,6 +75,7 @@ function createQuizStateFromDeal(deal: DealResult): QuizState {
     currentCount: deal.currentCount,
     shuffled: deal.shuffled,
     remaining: deal.remaining,
+    lockedBetLevel: betLevel,
   }
 }
 
@@ -141,10 +144,11 @@ export function QuizPage() {
     shoeRef.current = createShoe()
     initialDealRef.current = shoeRef.current.deal()
   }
-  const [quiz, setQuiz] = useState<QuizState>(() => createQuizStateFromDeal(initialDealRef.current!))
+  const [quiz, setQuiz] = useState<QuizState>(() => createQuizStateFromDeal(initialDealRef.current!, loadBetLevel()))
   const [showTable, setShowTable] = useState(false)
   const [evInfo, setEVInfo] = useState<EVInfo | null>(null)
-  const [betLevel, setBetLevel] = useState<BetLevel>(loadBetLevel)
+  // nextBetLevel: what the user selects for the NEXT hand (via toggle shown after answering)
+  const [nextBetLevel, setNextBetLevel] = useState<BetLevel>(loadBetLevel)
   const cumulativeRef = useRef<CumulativeEV>({ count: 0, totalSelectedEV: 0, totalOptimalEV: 0 })
   const [cumulative, setCumulative] = useState<CumulativeEV>({ count: 0, totalSelectedEV: 0, totalOptimalEV: 0 })
   const betStatsRef = useRef<BetStats>({ total: 0, correct: 0 })
@@ -154,8 +158,8 @@ export function QuizPage() {
     document.title = 'トレーニング'
   }, [])
 
-  const handleBetToggle = useCallback((level: BetLevel) => {
-    setBetLevel(level)
+  const handleNextBetToggle = useCallback((level: BetLevel) => {
+    setNextBetLevel(level)
     saveBetLevel(level)
   }, [])
 
@@ -165,8 +169,8 @@ export function QuizPage() {
     const info = computeEVInfo(quiz.playerCards, quiz.dealerCard, action)
     setEVInfo(info)
 
-    // Determine bet multiplier
-    const betMultiplier = betLevel === 'x2' ? 2 : 1
+    // Use the locked bet level (fixed at deal time) for EV scaling and bet judgment
+    const betMultiplier = quiz.lockedBetLevel === 'x2' ? 2 : 1
 
     // Update cumulative (count always increments; EV sums only when available)
     const newCumulative: CumulativeEV = {
@@ -177,9 +181,9 @@ export function QuizPage() {
     cumulativeRef.current = newCumulative
     setCumulative(newCumulative)
 
-    // Update bet stats
+    // Update bet stats using the locked bet level
     const recommendedBet = getRecommendedBet(quiz.preDealCount)
-    const betCorrect = betLevel === recommendedBet
+    const betCorrect = quiz.lockedBetLevel === recommendedBet
     const newBetStats: BetStats = {
       total: betStatsRef.current.total + 1,
       correct: betStatsRef.current.correct + (betCorrect ? 1 : 0),
@@ -193,21 +197,22 @@ export function QuizPage() {
       selectedAction: action,
       isCorrect: action === prev.correctAction,
     }))
-  }, [quiz.playerCards, quiz.dealerCard, quiz.answered, quiz.preDealCount, betLevel])
+  }, [quiz.playerCards, quiz.dealerCard, quiz.answered, quiz.preDealCount, quiz.lockedBetLevel])
 
   const handleRetry = useCallback(() => {
     const deal = shoeRef.current!.deal()
-    setQuiz(createQuizStateFromDeal(deal))
+    // Lock in the current nextBetLevel for the new hand
+    setQuiz(createQuizStateFromDeal(deal, nextBetLevel))
     setShowTable(false)
     setEVInfo(null)
-  }, [])
+  }, [nextBetLevel])
 
   const handleToggleTable = useCallback(() => {
     setShowTable((prev) => !prev)
   }, [])
 
   const recommendedBet = getRecommendedBet(quiz.preDealCount)
-  const betCorrect = betLevel === recommendedBet
+  const betCorrect = quiz.lockedBetLevel === recommendedBet
 
   return (
     <div className="quiz-page">
@@ -217,30 +222,6 @@ export function QuizPage() {
           シャッフルしました（カウントリセット）
         </div>
       )}
-
-      {/* Bet toggle and shoe info */}
-      <div className="bet-section">
-        <div className="bet-toggle">
-          <span className="bet-toggle-label">Bet:</span>
-          <button
-            className={`bet-toggle-btn ${betLevel === 'normal' ? 'bet-toggle-active' : ''}`}
-            onClick={() => handleBetToggle('normal')}
-            disabled={quiz.answered}
-          >
-            ノーマル
-          </button>
-          <button
-            className={`bet-toggle-btn ${betLevel === 'x2' ? 'bet-toggle-active' : ''}`}
-            onClick={() => handleBetToggle('x2')}
-            disabled={quiz.answered}
-          >
-            x2
-          </button>
-        </div>
-        <div className="shoe-remaining">
-          残り {quiz.remaining} 枚
-        </div>
-      </div>
 
       {/* Dealer section */}
       <div className="hand-section">
@@ -331,6 +312,33 @@ export function QuizPage() {
               </span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Hand info bar: shows current bet and remaining cards near the action area */}
+      <div className="hand-info-bar">
+        <span className="hand-info-item">Bet: {quiz.lockedBetLevel === 'x2' ? 'x2' : 'ノーマル'}</span>
+        <span className="hand-info-item">残り {quiz.remaining} 枚</span>
+      </div>
+
+      {/* Next bet toggle (shown only after answering, above action buttons) */}
+      {quiz.answered && (
+        <div className="next-bet-section">
+          <span className="bet-toggle-label">次のベット:</span>
+          <div className="bet-toggle">
+            <button
+              className={`bet-toggle-btn ${nextBetLevel === 'normal' ? 'bet-toggle-active' : ''}`}
+              onClick={() => handleNextBetToggle('normal')}
+            >
+              ノーマル
+            </button>
+            <button
+              className={`bet-toggle-btn ${nextBetLevel === 'x2' ? 'bet-toggle-active' : ''}`}
+              onClick={() => handleNextBetToggle('x2')}
+            >
+              x2
+            </button>
+          </div>
         </div>
       )}
 
