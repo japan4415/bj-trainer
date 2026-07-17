@@ -498,21 +498,15 @@ describe('getActionEVsWithCount', () => {
     }
   })
 
-  it('A-rich (high count) improves doubleEV for 11 vs 6', () => {
-    // More Aces remaining -> drawing a 10 or A makes 21 more likely
-    // Actually, high count means more Aces remaining -> p(A) increases
-    // Double 11: drawing an Ace gives 12 (soft), which is not great
-    // But the dealer also gets more Aces, affecting dealer distribution
-    // The key effect: with more Aces, soft hands are more common
-    // Let's just verify the direction by using the engine directly
+  it('A-rich (high count) increases doubleEV for 11 vs 6', () => {
+    // High count means fewer 5s remain. Dealer starting from 6 loses access
+    // to 6+5=11, increasing dealer bust rate. This improves double 11 EV
+    // because the doubled bet benefits from higher dealer bust probability.
     const baseEngine = createEvEngine(standardProbs())
     const richEngine = createEvEngine(aceFiveAdjustedProbs(4, 200))
     const baseEV = baseEngine.doubleEV(11, false, 6)
     const richEV = richEngine.doubleEV(11, false, 6)
-    // With A-rich deck, hitting 11 gets more aces (value 1 hitting 11 gives soft 12)
-    // and more 10s would stay the same. The overall effect on double 11 depends on
-    // both player draw and dealer draw. Let's just check they differ.
-    expect(richEV).not.toBeCloseTo(baseEV, 3)
+    expect(richEV).toBeGreaterThan(baseEV)
   })
 
   it('A-rich (high count) changes hitEV for hard 16 vs 10', () => {
@@ -526,16 +520,15 @@ describe('getActionEVsWithCount', () => {
     expect(richHitEV).not.toBeCloseTo(baseHitEV, 3)
   })
 
-  it('A-rich (high count) improves standEV for 20 vs 6 (dealer busts more with fewer 5s)', () => {
-    // High count -> fewer 5s remaining -> dealer with 6 upcard can't draw 5 to make 11
-    // This increases dealer bust rate, improving stand EV for strong player hands
+  it('A-rich (high count) increases standEV for 20 vs 6 (dealer busts more with fewer 5s)', () => {
+    // High count -> fewer 5s remaining -> dealer with 6 upcard loses the
+    // 6+5=11 path, increasing dealer bust rate. Standing on 20 benefits
+    // from higher dealer bust probability, so stand EV increases.
     const baseEngine = createEvEngine(standardProbs())
     const richEngine = createEvEngine(aceFiveAdjustedProbs(6, 200))
     const baseStandEV = baseEngine.standEV(20, 6)
     const richStandEV = richEngine.standEV(20, 6)
-    // Fewer 5s means dealer starting from 6 has fewer ways to reach safe totals
-    // Net effect should be positive for standing on 20
-    expect(richStandEV).not.toBeCloseTo(baseStandEV, 3)
+    expect(richStandEV).toBeGreaterThan(baseStandEV)
   })
 
   it('5-rich (negative count) has more 5s remaining', () => {

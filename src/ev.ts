@@ -43,9 +43,9 @@ export function aceFiveAdjustedProbs(count: number, remaining: number): CardProb
   let pA = base + adjustment
   let p5 = base - adjustment
 
-  // Clamp and redistribute
+  // Clamp negatives to 0, preserving pA + p5 = 2/13
   if (pA < 0) {
-    p5 += pA // add the negative overshoot to p5 (which reduces it... wait, pA < 0 means p5 = base - adj, adj > base, so p5 = base + |adj| > base. Adding pA (negative) to p5 keeps total.)
+    p5 += pA
     pA = 0
   } else if (p5 < 0) {
     pA += p5
@@ -176,7 +176,7 @@ export function createEvEngine(probs: CardProbs): EvEngine {
 
     const cacheKey = `${total}:${isSoft ? 1 : 0}`
     const cached = dealerDistCache.get(cacheKey)
-    if (cached) return cached
+    if (cached !== undefined) return cached
 
     const dist = emptyDist()
 
