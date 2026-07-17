@@ -143,6 +143,20 @@ export function getCorrectAction(playerCards: [Card, Card], dealerCard: Card): A
   return row[colIndex] ?? 'HIT'
 }
 
+/**
+ * Get the strategy table lookup info for highlighting purposes.
+ * Returns the hand type, table row key, and dealer column index.
+ */
+export function getStrategyLookup(
+  playerCards: [Card, Card],
+  dealerCard: Card,
+): { handType: HandType; rowKey: number; colIndex: number } {
+  const hand = classifyHand(playerCards[0], playerCards[1])
+  const dealerCol = getDealerColumn(dealerCard.number)
+  const colIndex = getDealerColumnIndex(dealerCol)
+  return { handType: hand.type, rowKey: hand.key, colIndex }
+}
+
 // Export tables for the explanation page
 export { HARD_TABLE, SOFT_TABLE, PAIR_TABLE, DEALER_COLUMNS }
 export type { DealerColumn }

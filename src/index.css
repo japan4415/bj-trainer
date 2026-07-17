@@ -195,6 +195,14 @@ a {
   background-color: #138496;
 }
 
+.btn-show-table {
+  background-color: #e6a817;
+  color: #000;
+}
+.btn-show-table:hover {
+  background-color: #cc9412;
+}
+
 /* ========================================
    Explanation Page
    ======================================== */
@@ -297,6 +305,38 @@ a {
 .cell-split {
   background-color: #ffc107;
   color: #000;
+}
+
+/* ========================================
+   Quiz Table Container
+   ======================================== */
+
+.quiz-table-container {
+  margin-top: 30px;
+}
+
+/* ========================================
+   Strategy Table Highlight
+   ======================================== */
+
+.hl-dimmed {
+  opacity: 0.35;
+}
+
+.hl-col {
+  background-color: rgba(255, 215, 0, 0.2);
+}
+
+.hl-row {
+  background-color: rgba(255, 215, 0, 0.2);
+}
+
+.hl-intersection {
+  outline: 3px solid #fff;
+  outline-offset: -2px;
+  box-shadow: 0 0 12px 3px rgba(255, 215, 0, 0.7);
+  font-weight: 900;
+  font-size: 1rem;
 }
 
 /* ========================================

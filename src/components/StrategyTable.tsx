@@ -1,4 +1,4 @@
-import type { Action } from '../types'
+import type { Action, HandType } from '../types'
 import { HARD_TABLE, SOFT_TABLE, PAIR_TABLE, DEALER_COLUMNS } from '../strategy'
 
 function getActionLabel(action: Action): string {
@@ -19,13 +19,19 @@ function getActionClass(action: Action): string {
   }
 }
 
+export interface HighlightInfo {
+  rowKey: number
+  colIndex: number
+}
+
 interface StrategyTableProps {
   title: string
   table: Record<number, readonly Action[]>
   rowLabels: { key: number; label: string }[]
+  highlight?: HighlightInfo
 }
 
-function StrategyTableView({ title, table, rowLabels }: StrategyTableProps) {
+function StrategyTableView({ title, table, rowLabels, highlight }: StrategyTableProps) {
   return (
     <div className="strategy-table-wrapper">
       <h3 className="strategy-table-title">{title}</h3>
@@ -34,8 +40,16 @@ function StrategyTableView({ title, table, rowLabels }: StrategyTableProps) {
           <thead>
             <tr>
               <th className="strategy-header-cell">YOUR HAND</th>
-              {DEALER_COLUMNS.map((col) => (
-                <th key={col} className="strategy-header-cell">{col}</th>
+              {DEALER_COLUMNS.map((col, ci) => (
+                <th
+                  key={col}
+                  className={
+                    'strategy-header-cell' +
+                    (highlight && ci === highlight.colIndex ? ' hl-col' : '')
+                  }
+                >
+                  {col}
+                </th>
               ))}
             </tr>
             <tr>
@@ -49,14 +63,34 @@ function StrategyTableView({ title, table, rowLabels }: StrategyTableProps) {
             {rowLabels.map(({ key, label }) => {
               const row = table[key]
               if (!row) return null
+              const isHighlightedRow = highlight != null && key === highlight.rowKey
               return (
                 <tr key={key}>
-                  <td className="strategy-row-label">{label}</td>
-                  {row.map((action, i) => (
-                    <td key={i} className={`strategy-cell ${getActionClass(action)}`}>
-                      {getActionLabel(action)}
-                    </td>
-                  ))}
+                  <td
+                    className={
+                      'strategy-row-label' +
+                      (isHighlightedRow ? ' hl-row' : '')
+                    }
+                  >
+                    {label}
+                  </td>
+                  {row.map((action, i) => {
+                    const isIntersection = isHighlightedRow && highlight != null && i === highlight.colIndex
+                    const isRowOrCol = isHighlightedRow || (highlight != null && i === highlight.colIndex)
+                    let cls = `strategy-cell ${getActionClass(action)}`
+                    if (highlight != null) {
+                      if (isIntersection) {
+                        cls += ' hl-intersection'
+                      } else if (!isRowOrCol) {
+                        cls += ' hl-dimmed'
+                      }
+                    }
+                    return (
+                      <td key={i} className={cls}>
+                        {getActionLabel(action)}
+                      </td>
+                    )
+                  })}
                 </tr>
               )
             })}
@@ -96,6 +130,46 @@ export function StrategyTables() {
       <StrategyTableView title="Hard Totals" table={HARD_TABLE} rowLabels={HARD_ROWS} />
       <StrategyTableView title="Soft Totals" table={SOFT_TABLE} rowLabels={SOFT_ROWS} />
       <StrategyTableView title="Pairs" table={PAIR_TABLE} rowLabels={PAIR_ROWS} />
+    </div>
+  )
+}
+
+interface HighlightedStrategyTableProps {
+  handType: HandType
+  highlight: HighlightInfo
+}
+
+export function HighlightedStrategyTable({ handType, highlight }: HighlightedStrategyTableProps) {
+  let title: string
+  let table: Record<number, readonly Action[]>
+  let rowLabels: { key: number; label: string }[]
+
+  switch (handType) {
+    case 'HARD':
+      title = 'Hard Totals'
+      table = HARD_TABLE
+      rowLabels = HARD_ROWS
+      break
+    case 'SOFT':
+      title = 'Soft Totals'
+      table = SOFT_TABLE
+      rowLabels = SOFT_ROWS
+      break
+    case 'PAIR':
+      title = 'Pairs'
+      table = PAIR_TABLE
+      rowLabels = PAIR_ROWS
+      break
+  }
+
+  return (
+    <div className="strategy-tables">
+      <StrategyTableView
+        title={title}
+        table={table}
+        rowLabels={rowLabels}
+        highlight={highlight}
+      />
     </div>
   )
 }
