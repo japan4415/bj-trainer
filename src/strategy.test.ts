@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getCorrectAction, classifyHand, getCardValue } from './strategy'
+import { getCorrectAction, classifyHand, getCardValue, getStrategyLookup } from './strategy'
 import type { Card } from './types'
 
 function card(suit: Card['suit'], number: Card['number']): Card {
@@ -315,5 +315,70 @@ describe('getCorrectAction', () => {
       [card('C', 4), card('H', 13)], // 4 + K = 14
       card('D', 2), // dealer 2
     )).toBe('STAND')
+  })
+})
+
+describe('getStrategyLookup', () => {
+  it('returns HARD table info for hard hand', () => {
+    // 9 + 5 = hard 14, dealer 6 -> col index 4
+    const result = getStrategyLookup(
+      [card('H', 9), card('S', 5)],
+      card('D', 6),
+    )
+    expect(result.handType).toBe('HARD')
+    expect(result.rowKey).toBe(14)
+    expect(result.colIndex).toBe(4)
+  })
+
+  it('returns SOFT table info for soft hand', () => {
+    // A-7, dealer 3 -> col index 1
+    const result = getStrategyLookup(
+      [card('H', 1), card('S', 7)],
+      card('D', 3),
+    )
+    expect(result.handType).toBe('SOFT')
+    expect(result.rowKey).toBe(7)
+    expect(result.colIndex).toBe(1)
+  })
+
+  it('returns PAIR table info for pair hand', () => {
+    // 8-8, dealer A -> col index 9
+    const result = getStrategyLookup(
+      [card('H', 8), card('S', 8)],
+      card('D', 1),
+    )
+    expect(result.handType).toBe('PAIR')
+    expect(result.rowKey).toBe(8)
+    expect(result.colIndex).toBe(9)
+  })
+
+  it('maps dealer face card J to col index 8 (10 column)', () => {
+    const result = getStrategyLookup(
+      [card('H', 4), card('S', 6)],
+      card('D', 11), // J
+    )
+    expect(result.handType).toBe('HARD')
+    expect(result.rowKey).toBe(10)
+    expect(result.colIndex).toBe(8) // '10' is at index 8
+  })
+
+  it('maps dealer 2 to col index 0', () => {
+    const result = getStrategyLookup(
+      [card('H', 5), card('S', 7)],
+      card('D', 2),
+    )
+    expect(result.handType).toBe('HARD')
+    expect(result.rowKey).toBe(12)
+    expect(result.colIndex).toBe(0)
+  })
+
+  it('returns correct info for A-A pair', () => {
+    const result = getStrategyLookup(
+      [card('H', 1), card('S', 1)],
+      card('D', 5),
+    )
+    expect(result.handType).toBe('PAIR')
+    expect(result.rowKey).toBe(11) // A-A key is 11
+    expect(result.colIndex).toBe(3) // dealer 5 -> index 3
   })
 })

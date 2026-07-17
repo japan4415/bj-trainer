@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { Card as CardType, Action } from '../types'
 import { PlayingCard, CardBack } from './Card'
+import { HighlightedStrategyTable } from './StrategyTable'
 import { dealHand } from '../deck'
-import { getCorrectAction } from '../strategy'
+import { getCorrectAction, getStrategyLookup } from '../strategy'
 
 interface QuizState {
   dealerCard: CardType
@@ -37,6 +38,7 @@ function getActionLabel(action: Action): string {
 
 export function QuizPage() {
   const [quiz, setQuiz] = useState<QuizState>(createQuizState)
+  const [showTable, setShowTable] = useState(false)
 
   useEffect(() => {
     document.title = 'トレーニング'
@@ -53,6 +55,11 @@ export function QuizPage() {
 
   const handleRetry = useCallback(() => {
     setQuiz(createQuizState())
+    setShowTable(false)
+  }, [])
+
+  const handleToggleTable = useCallback(() => {
+    setShowTable((prev) => !prev)
   }, [])
 
   return (
@@ -118,14 +125,37 @@ export function QuizPage() {
             </button>
           </>
         ) : (
-          <button
-            className="action-btn btn-retry"
-            onClick={handleRetry}
-          >
-            Retry
-          </button>
+          <>
+            <button
+              className="action-btn btn-retry"
+              onClick={handleRetry}
+            >
+              Retry
+            </button>
+            {quiz.isCorrect === false && (
+              <button
+                className="action-btn btn-show-table"
+                onClick={handleToggleTable}
+              >
+                {showTable ? '表を閉じる' : '表で確認'}
+              </button>
+            )}
+          </>
         )}
       </div>
+
+      {/* Highlighted strategy table for incorrect answers */}
+      {quiz.answered && quiz.isCorrect === false && showTable && (() => {
+        const lookup = getStrategyLookup(quiz.playerCards, quiz.dealerCard)
+        return (
+          <div className="quiz-table-container">
+            <HighlightedStrategyTable
+              handType={lookup.handType}
+              highlight={{ rowKey: lookup.rowKey, colIndex: lookup.colIndex }}
+            />
+          </div>
+        )
+      })()}
     </div>
   )
 }
