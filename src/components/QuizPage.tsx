@@ -2,9 +2,10 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Card as CardType, Action } from '../types'
 import { PlayingCard, CardBack } from './Card'
 import { HighlightedStrategyTable } from './StrategyTable'
-import { dealHand } from '../deck'
 import { getCorrectAction, getStrategyLookup } from '../strategy'
 import { getActionEVs } from '../ev'
+import { createShoe, getRecommendedBet } from '../shoe'
+import type { Shoe, BetLevel, DealResult } from '../shoe'
 
 interface QuizState {
   dealerCard: CardType
@@ -13,12 +14,21 @@ interface QuizState {
   selectedAction: Action | null
   correctAction: Action
   isCorrect: boolean | null
+  preDealCount: number
+  currentCount: number
+  shuffled: boolean
+  remaining: number
 }
 
 interface CumulativeEV {
   count: number
   totalSelectedEV: number
   totalOptimalEV: number
+}
+
+interface BetStats {
+  total: number
+  correct: number
 }
 
 interface EVInfo {
@@ -30,16 +40,39 @@ interface EVInfo {
   splitUnavailable: boolean
 }
 
-function createQuizState(): QuizState {
-  const { dealerCard, playerCards } = dealHand()
-  const correctAction = getCorrectAction(playerCards, dealerCard)
+const BET_STORAGE_KEY = 'bj-trainer-bet-level'
+
+function loadBetLevel(): BetLevel {
+  try {
+    const stored = localStorage.getItem(BET_STORAGE_KEY)
+    if (stored === 'normal' || stored === 'x2') return stored
+  } catch {
+    // localStorage unavailable
+  }
+  return 'normal'
+}
+
+function saveBetLevel(level: BetLevel): void {
+  try {
+    localStorage.setItem(BET_STORAGE_KEY, level)
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+function createQuizStateFromDeal(deal: DealResult): QuizState {
+  const correctAction = getCorrectAction(deal.playerCards, deal.dealerCard)
   return {
-    dealerCard,
-    playerCards,
+    dealerCard: deal.dealerCard,
+    playerCards: deal.playerCards,
     answered: false,
     selectedAction: null,
     correctAction,
     isCorrect: null,
+    preDealCount: deal.preDealCount,
+    currentCount: deal.currentCount,
+    shuffled: deal.shuffled,
+    remaining: deal.remaining,
   }
 }
 
@@ -55,6 +88,11 @@ function getActionLabel(action: Action): string {
 function formatEV(ev: number): string {
   const sign = ev >= 0 ? '+' : ''
   return `${sign}${ev.toFixed(3)}`
+}
+
+function formatCount(count: number): string {
+  const sign = count > 0 ? '+' : ''
+  return `${sign}${count}`
 }
 
 function computeEVInfo(
@@ -97,14 +135,23 @@ function computeEVInfo(
 }
 
 export function QuizPage() {
-  const [quiz, setQuiz] = useState<QuizState>(createQuizState)
+  const shoeRef = useRef<Shoe>(createShoe())
+  const [quiz, setQuiz] = useState<QuizState>(() => createQuizStateFromDeal(shoeRef.current.deal()))
   const [showTable, setShowTable] = useState(false)
   const [evInfo, setEVInfo] = useState<EVInfo | null>(null)
+  const [betLevel, setBetLevel] = useState<BetLevel>(loadBetLevel)
   const cumulativeRef = useRef<CumulativeEV>({ count: 0, totalSelectedEV: 0, totalOptimalEV: 0 })
   const [cumulative, setCumulative] = useState<CumulativeEV>({ count: 0, totalSelectedEV: 0, totalOptimalEV: 0 })
+  const betStatsRef = useRef<BetStats>({ total: 0, correct: 0 })
+  const [betStats, setBetStats] = useState<BetStats>({ total: 0, correct: 0 })
 
   useEffect(() => {
     document.title = 'トレーニング'
+  }, [])
+
+  const handleBetToggle = useCallback((level: BetLevel) => {
+    setBetLevel(level)
+    saveBetLevel(level)
   }, [])
 
   const handleAnswer = useCallback((action: Action) => {
@@ -113,16 +160,29 @@ export function QuizPage() {
     const info = computeEVInfo(quiz.playerCards, quiz.dealerCard, action)
     setEVInfo(info)
 
-    // Update cumulative
+    // Determine bet multiplier
+    const betMultiplier = betLevel === 'x2' ? 2 : 1
+
+    // Update cumulative EV (scaled by bet multiplier)
     if (info.selectedEV !== null) {
       const newCumulative: CumulativeEV = {
         count: cumulativeRef.current.count + 1,
-        totalSelectedEV: cumulativeRef.current.totalSelectedEV + info.selectedEV,
-        totalOptimalEV: cumulativeRef.current.totalOptimalEV + info.optimalEV,
+        totalSelectedEV: cumulativeRef.current.totalSelectedEV + info.selectedEV * betMultiplier,
+        totalOptimalEV: cumulativeRef.current.totalOptimalEV + info.optimalEV * betMultiplier,
       }
       cumulativeRef.current = newCumulative
       setCumulative(newCumulative)
     }
+
+    // Update bet stats
+    const recommendedBet = getRecommendedBet(quiz.preDealCount)
+    const betCorrect = betLevel === recommendedBet
+    const newBetStats: BetStats = {
+      total: betStatsRef.current.total + 1,
+      correct: betStatsRef.current.correct + (betCorrect ? 1 : 0),
+    }
+    betStatsRef.current = newBetStats
+    setBetStats(newBetStats)
 
     setQuiz((prev) => ({
       ...prev,
@@ -130,10 +190,11 @@ export function QuizPage() {
       selectedAction: action,
       isCorrect: action === prev.correctAction,
     }))
-  }, [quiz.playerCards, quiz.dealerCard, quiz.answered])
+  }, [quiz.playerCards, quiz.dealerCard, quiz.answered, quiz.preDealCount, betLevel])
 
   const handleRetry = useCallback(() => {
-    setQuiz(createQuizState())
+    const deal = shoeRef.current.deal()
+    setQuiz(createQuizStateFromDeal(deal))
     setShowTable(false)
     setEVInfo(null)
   }, [])
@@ -142,8 +203,42 @@ export function QuizPage() {
     setShowTable((prev) => !prev)
   }, [])
 
+  const recommendedBet = getRecommendedBet(quiz.preDealCount)
+  const betCorrect = betLevel === recommendedBet
+
   return (
     <div className="quiz-page">
+      {/* Shuffle notification */}
+      {quiz.shuffled && (
+        <div className="shuffle-notification">
+          シャッフルしました（カウントリセット）
+        </div>
+      )}
+
+      {/* Bet toggle and shoe info */}
+      <div className="bet-section">
+        <div className="bet-toggle">
+          <span className="bet-toggle-label">Bet:</span>
+          <button
+            className={`bet-toggle-btn ${betLevel === 'normal' ? 'bet-toggle-active' : ''}`}
+            onClick={() => handleBetToggle('normal')}
+            disabled={quiz.answered}
+          >
+            ノーマル
+          </button>
+          <button
+            className={`bet-toggle-btn ${betLevel === 'x2' ? 'bet-toggle-active' : ''}`}
+            onClick={() => handleBetToggle('x2')}
+            disabled={quiz.answered}
+          >
+            x2
+          </button>
+        </div>
+        <div className="shoe-remaining">
+          残り {quiz.remaining} 枚
+        </div>
+      </div>
+
       {/* Dealer section */}
       <div className="hand-section">
         <h2 className="hand-label">Dealer</h2>
@@ -196,6 +291,19 @@ export function QuizPage() {
                 : '---'}
             </span>
           </div>
+
+          {/* Bet judgment */}
+          <div className="ev-row ev-row-bet">
+            <span className={`bet-judgment ${betCorrect ? 'bet-correct' : 'bet-incorrect'}`}>
+              ベット: {betCorrect ? '○ 正解' : '✗ 不正解'}
+              （配布前カウント {formatCount(quiz.preDealCount)} → {recommendedBet === 'x2' ? 'x2' : 'ノーマル'}推奨）
+            </span>
+            <span className="ev-separator">|</span>
+            <span className="ev-label">
+              現在カウント: {formatCount(quiz.currentCount)}
+            </span>
+          </div>
+
           {cumulative.count > 0 && (
             <div className="ev-row ev-row-cumulative">
               <span className="ev-label">累積 ({cumulative.count}問):</span>
@@ -212,6 +320,11 @@ export function QuizPage() {
               <span className="ev-label">差</span>
               <span className={`ev-value ${(cumulative.totalSelectedEV - cumulative.totalOptimalEV) < -0.0005 ? 'ev-negative' : 'ev-optimal'}`}>
                 {formatEV(cumulative.totalSelectedEV - cumulative.totalOptimalEV)}
+              </span>
+              <span className="ev-separator">|</span>
+              <span className="ev-label">ベット正解率:</span>
+              <span className="ev-value ev-positive">
+                {betStats.correct}/{betStats.total}
               </span>
             </div>
           )}

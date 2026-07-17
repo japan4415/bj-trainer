@@ -34,6 +34,26 @@ export function ExplanationPage() {
       </div>
 
       <StrategyTables />
+
+      <div className="explanation-text" style={{ marginTop: '40px' }}>
+        <h2 className="strategy-table-title">Ace-Five カウント</h2>
+        <p>
+          Ace-Fiveカウントは最もシンプルなカードカウンティング手法です。
+          シャッフル直後にカウントを0から開始し、場に見えたカードについて
+          <strong>5が出るたびに+1</strong>、<strong>Aが出るたびに-1</strong>します。
+          それ以外のカードではカウントは変化しません。
+        </p>
+        <p>
+          カウントが<strong>+2以上</strong>のとき、残りのカードはプレイヤーに有利な構成になっているため、
+          ベットを<strong>2倍（x2）</strong>にすることが推奨されます。
+          カウントが+1以下のときは通常のベット（ノーマル）で遊びます。
+        </p>
+        <p>
+          本アプリでは6デッキ（312枚）のシューを使用し、
+          残り枚数が約1/4（0〜78枚）になった時点でシャッフルを行い、
+          カウントがリセットされます。
+        </p>
+      </div>
     </div>
   )
 }
