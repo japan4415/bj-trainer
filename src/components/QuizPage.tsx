@@ -69,6 +69,8 @@ interface GameState {
   shuffled: boolean
   remaining: number
   lockedBetLevel: BetLevel
+  /** Count after all round cards are revealed (for display) */
+  roundEndCount: number | null
   // First action quiz
   firstActionCorrect: Action
   selectedFirstAction: Action | null
@@ -205,6 +207,7 @@ export function QuizPage() {
       shuffled,
       remaining: shoe.getRemaining(),
       lockedBetLevel: betLevel,
+      roundEndCount: null,
       firstActionCorrect: roundState.firstActionCorrectAction,
       selectedFirstAction: null,
       isFirstCorrect: null,
@@ -265,11 +268,13 @@ export function QuizPage() {
       const resolved = resolveRound(result.state, drawCard)
       for (const c of resolved.drawnCards) shoe.countCard(c)
       nextPhase = 'RESOLVED'
+      const roundEndCount = shoe.getCount()
       setGame(prev => ({
         ...prev,
         round: resolved.state,
         phase: nextPhase,
         remaining: shoe.getRemaining(),
+        roundEndCount,
         selectedFirstAction: action,
         isFirstCorrect: isCorrect,
       }))
@@ -298,11 +303,13 @@ export function QuizPage() {
     if (result.state.phase === 'ROUND_OVER') {
       const resolved = resolveRound(result.state, drawCard)
       for (const c of resolved.drawnCards) shoe.countCard(c)
+      const roundEndCount = shoe.getCount()
       setGame(prev => ({
         ...prev,
         round: resolved.state,
         phase: 'RESOLVED',
         remaining: shoe.getRemaining(),
+        roundEndCount,
       }))
     } else {
       setGame(prev => ({
@@ -334,6 +341,7 @@ export function QuizPage() {
       shuffled,
       remaining: shoe.getRemaining(),
       lockedBetLevel: nextBetLevel,
+      roundEndCount: null,
       firstActionCorrect: roundState.firstActionCorrectAction,
       selectedFirstAction: null,
       isFirstCorrect: null,
@@ -500,7 +508,7 @@ export function QuizPage() {
             </span>
             <span className="ev-separator">|</span>
             <span className="ev-label">
-              現在カウント: {formatCount(game.evCount)}
+              ラウンド終了カウント: {formatCount(game.roundEndCount ?? game.evCount)}
             </span>
           </div>
 
