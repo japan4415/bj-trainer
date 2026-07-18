@@ -47,7 +47,7 @@ function createShoeCards(): Card[] {
 }
 
 /** Compute Ace-Five count delta for a single card */
-function aceFiveCountDelta(card: Card): number {
+export function aceFiveCountDelta(card: Card): number {
   if (card.number === 5) return 1
   if (card.number === 1) return -1
   return 0
@@ -64,12 +64,21 @@ export function getRecommendedBet(preDealCount: number): BetLevel {
 }
 
 export interface Shoe {
-  /** Deal 3 cards (dealer 1 + player 2). Auto-shuffles if needed before dealing. */
+  /** Legacy: Deal 3 cards (dealer 1 + player 2). Auto-shuffles if needed before dealing. */
   deal(): DealResult
+  /** Draw a single card from the shoe. Does NOT update the count. */
+  drawOne(): Card
+  /** Manually apply Ace-Five count for a visible card. */
+  countCard(card: Card): void
   /** Current Ace-Five running count */
   getCount(): number
   /** Number of cards remaining in the shoe */
   getRemaining(): number
+  /**
+   * Check if reshuffle is needed (remaining <= cutoff OR remaining < safetyMargin)
+   * and perform it if so. Returns true if reshuffled.
+   */
+  checkAndReshuffle(safetyMargin?: number): boolean
 }
 
 /** Create a new 6-deck shoe */
@@ -86,6 +95,25 @@ export function createShoe(rng: RngFn = Math.random): Shoe {
     cutoff = generateCutoff(rng)
   }
 
+  function drawOne(): Card {
+    const card = cards[position]!
+    position++
+    return card
+  }
+
+  function countCard(card: Card): void {
+    count += aceFiveCountDelta(card)
+  }
+
+  function checkAndReshuffle(safetyMargin = 0): boolean {
+    const remaining = TOTAL_CARDS - position
+    if (remaining <= cutoff || remaining < safetyMargin) {
+      reshuffle()
+      return true
+    }
+    return false
+  }
+
   function deal(): DealResult {
     // Check if we need to reshuffle BEFORE dealing
     const remaining = TOTAL_CARDS - position
@@ -98,15 +126,14 @@ export function createShoe(rng: RngFn = Math.random): Shoe {
     const preDealCount = count
 
     // Draw 3 cards
-    const dealerCard = cards[position]!
-    const playerCard1 = cards[position + 1]!
-    const playerCard2 = cards[position + 2]!
-    position += 3
+    const dealerCard = drawOne()
+    const playerCard1 = drawOne()
+    const playerCard2 = drawOne()
 
     // Update count for all 3 visible cards
-    count += aceFiveCountDelta(dealerCard)
-    count += aceFiveCountDelta(playerCard1)
-    count += aceFiveCountDelta(playerCard2)
+    countCard(dealerCard)
+    countCard(playerCard1)
+    countCard(playerCard2)
 
     return {
       dealerCard,
@@ -120,8 +147,11 @@ export function createShoe(rng: RngFn = Math.random): Shoe {
 
   return {
     deal,
+    drawOne,
+    countCard,
     getCount: () => count,
     getRemaining: () => TOTAL_CARDS - position,
+    checkAndReshuffle,
   }
 }
 
