@@ -379,47 +379,75 @@ export function QuizPage() {
         </div>
       </div>
 
-      {/* AI seats */}
-      {game.round.aiSeats.map((seat: AiSeat, seatIdx: number) => (
-        <div key={`ai-${seatIdx}`} className="hand-section ai-seat-section">
-          <h2 className="hand-label ai-seat-label">
-            席{seatIdx + 2}
-            {isResolved && seat.hands.map((h: PlayerHand, hi: number) => (
-              <span key={hi} className="hand-total"> ({handTotalDisplay(h)})</span>
-            ))}
-          </h2>
-          {seat.hands.map((h: PlayerHand, hi: number) => (
-            <div key={hi} className="card-row card-row-small">
-              {h.cards.map((c: CardType, ci: number) => (
-                <PlayingCard key={`ai-${seatIdx}-${hi}-${ci}`} card={c} />
+      {/* AI seats (horizontal layout) */}
+      {game.round.aiSeats.length > 0 && (
+        <div className="ai-seats-row">
+          {game.round.aiSeats.map((seat: AiSeat, seatIdx: number) => (
+            <div key={`ai-${seatIdx}`} className="ai-seat-col">
+              <h2 className="hand-label ai-seat-label">
+                席{seatIdx + 2}
+                {isResolved && seat.hands.map((h: PlayerHand, hi: number) => (
+                  <span key={hi} className="hand-total"> ({handTotalDisplay(h)})</span>
+                ))}
+              </h2>
+              {seat.hands.map((h: PlayerHand, hi: number) => (
+                <div key={hi} className="card-row card-row-small">
+                  {h.cards.map((c: CardType, ci: number) => (
+                    <PlayingCard key={`ai-${seatIdx}-${hi}-${ci}`} card={c} />
+                  ))}
+                </div>
               ))}
             </div>
           ))}
         </div>
-      ))}
+      )}
 
       {/* Player section */}
-      {game.round.userHands.map((hand: PlayerHand, idx: number) => (
-        <div key={`user-${idx}`} className={`hand-section ${isSplit ? 'split-hand-section' : ''} ${game.phase === 'CONTINUE' && idx === game.round.activeUserHandIndex ? 'active-hand' : ''}`}>
+      {isSplit ? (
+        <div className="split-hands-row">
+          {game.round.userHands.map((hand: PlayerHand, idx: number) => (
+            <div key={`user-${idx}`} className={`split-hand-col ${game.phase === 'CONTINUE' && idx === game.round.activeUserHandIndex ? 'active-hand' : ''}`}>
+              <h2 className="hand-label split-hand-label">
+                Hand {idx + 1}
+                {(isResolved || hand.done) && (
+                  <span className="hand-total"> ({handTotalDisplay(hand)})</span>
+                )}
+                {isResolved && game.round.userResults[idx] !== undefined && (
+                  <span className={`round-result ${resultClass(game.round.userResults[idx]!)}`}>
+                    {' '}{resultLabel(game.round.userResults[idx]!)}
+                  </span>
+                )}
+              </h2>
+              <div className="card-row card-row-split">
+                {hand.cards.map((c: CardType, ci: number) => (
+                  <PlayingCard key={`user-${idx}-${ci}`} card={c} />
+                ))}
+                {hand.doubled && <span className="doubled-badge">x2</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="hand-section">
           <h2 className="hand-label">
-            {isSplit ? `You (Hand ${idx + 1})` : 'You'}
-            {(isResolved || hand.done) && (
-              <span className="hand-total"> ({handTotalDisplay(hand)})</span>
+            You
+            {(isResolved || game.round.userHands[0]!.done) && (
+              <span className="hand-total"> ({handTotalDisplay(game.round.userHands[0]!)})</span>
             )}
-            {isResolved && game.round.userResults[idx] !== undefined && (
-              <span className={`round-result ${resultClass(game.round.userResults[idx]!)}`}>
-                {' '}{resultLabel(game.round.userResults[idx]!)}
+            {isResolved && game.round.userResults[0] !== undefined && (
+              <span className={`round-result ${resultClass(game.round.userResults[0]!)}`}>
+                {' '}{resultLabel(game.round.userResults[0]!)}
               </span>
             )}
           </h2>
           <div className="card-row">
-            {hand.cards.map((c: CardType, ci: number) => (
-              <PlayingCard key={`user-${idx}-${ci}`} card={c} />
+            {game.round.userHands[0]!.cards.map((c: CardType, ci: number) => (
+              <PlayingCard key={`user-0-${ci}`} card={c} />
             ))}
-            {hand.doubled && <span className="doubled-badge">x2</span>}
+            {game.round.userHands[0]!.doubled && <span className="doubled-badge">x2</span>}
           </div>
         </div>
-      ))}
+      )}
 
       {/* Continue feedback (2nd action onward) */}
       {game.round.continueFeedback.length > 0 && (

@@ -28,7 +28,7 @@ a {
   margin: 0 auto;
   background: #124d12;
   border-radius: 15px;
-  padding: 16px 20px;
+  padding: 12px 16px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
   min-height: 100dvh;
   display: flex;
@@ -87,7 +87,7 @@ a {
 }
 
 .hand-section {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .hand-label {
@@ -320,36 +320,66 @@ a {
 }
 
 /* ========================================
-   AI Seats
+   AI Seats (horizontal row)
    ======================================== */
 
-.ai-seat-section {
+.ai-seats-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
   margin-bottom: 4px;
 }
 
+.ai-seat-col {
+  flex: 0 1 auto;
+  text-align: center;
+}
+
 .ai-seat-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   margin-bottom: 2px;
 }
 
 .card-row-small {
-  gap: 5px;
+  gap: 4px;
   margin-bottom: 2px;
 }
 
 .card-row-small .playing-card {
-  height: 50px;
+  height: 46px;
 }
 
 /* ========================================
-   Split / Active Hand
+   Split Hands (horizontal row)
    ======================================== */
 
-.split-hand-section {
+.split-hands-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.split-hand-col {
+  flex: 0 1 auto;
+  text-align: center;
   border: 1px solid rgba(255, 215, 0, 0.15);
   border-radius: 6px;
-  padding: 4px;
-  margin-bottom: 6px;
+  padding: 4px 8px;
+}
+
+.split-hand-label {
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.card-row-split {
+  gap: 5px;
+  margin-bottom: 2px;
+}
+
+.card-row-split .playing-card {
+  height: 60px;
 }
 
 .active-hand {
@@ -721,15 +751,35 @@ a {
   }
 
   .card-row-small .playing-card {
-    height: 38px;
+    height: 34px;
   }
 
   .card-row-small {
+    gap: 2px;
+  }
+
+  .card-row-split .playing-card {
+    height: 46px;
+  }
+
+  .card-row-split {
     gap: 3px;
   }
 
   .ai-seat-label {
+    font-size: 0.7rem;
+  }
+
+  .split-hand-label {
     font-size: 0.75rem;
+  }
+
+  .ai-seats-row {
+    gap: 8px;
+  }
+
+  .split-hands-row {
+    gap: 6px;
   }
 
   .action-btn {
