@@ -272,6 +272,139 @@ a {
 }
 
 /* ========================================
+   AI Seats
+   ======================================== */
+
+.ai-seat-section {
+  margin-bottom: 16px;
+}
+
+.ai-seat-label {
+  font-size: 1.1rem;
+}
+
+.card-row-small .playing-card {
+  height: 70px;
+}
+
+/* ========================================
+   Split / Active Hand
+   ======================================== */
+
+.split-hand-section {
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.active-hand {
+  border-color: rgba(255, 215, 0, 0.6);
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.hand-total {
+  font-size: 0.85em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.doubled-badge {
+  background: #6f42c1;
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 8px;
+  align-self: center;
+  font-weight: bold;
+}
+
+.round-result {
+  font-size: 0.85em;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+.result-win { color: #6fcf6f; }
+.result-lose { color: #ff6b6b; }
+.result-push { color: #ffd700; }
+
+/* ========================================
+   Continue Feedback
+   ======================================== */
+
+.continue-feedback {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.feedback-item {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.feedback-correct {
+  color: #6fcf6f;
+}
+
+.feedback-incorrect {
+  color: #ff6b6b;
+}
+
+/* ========================================
+   Next Settings Section
+   ======================================== */
+
+.next-settings-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.next-seats-section {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.seats-toggle {
+  display: flex;
+  gap: 0;
+}
+
+.seats-toggle-btn {
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: rgba(0, 0, 0, 0.3);
+  color: #ccc;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.seats-toggle-btn:first-of-type {
+  border-radius: 15px 0 0 15px;
+}
+
+.seats-toggle-btn:last-of-type {
+  border-radius: 0 15px 15px 0;
+}
+
+.seats-toggle-active {
+  background: #c5991e;
+  color: #000;
+  font-weight: bold;
+  border-color: #ffd700;
+}
+
+/* ========================================
    Bet Judgment
    ======================================== */
 
@@ -532,5 +665,18 @@ a {
   .ev-panel {
     padding: 8px 10px;
     font-size: 0.75rem;
+  }
+
+  .card-row-small .playing-card {
+    height: 55px;
+  }
+
+  .ai-seat-label {
+    font-size: 0.9rem;
+  }
+
+  .seats-toggle-btn {
+    padding: 4px 7px;
+    font-size: 0.7rem;
   }
 }
