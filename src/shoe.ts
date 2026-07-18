@@ -96,6 +96,9 @@ export function createShoe(rng: RngFn = Math.random): Shoe {
   }
 
   function drawOne(): Card {
+    if (position >= cards.length) {
+      throw new Error('Shoe exhausted: no cards remaining')
+    }
     const card = cards[position]!
     position++
     return card

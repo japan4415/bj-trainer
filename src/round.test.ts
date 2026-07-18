@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { createShoe } from './shoe'
 import {
   computeHandValue,
   dealRound,
@@ -231,11 +232,7 @@ describe('AI seat play', () => {
     expect(resolved.state.aiSeats[0]!.hands[0]!.cards.length).toBeGreaterThan(2)
   })
 
-  it('AI uses DD->HIT fallback for 3+ cards', () => {
-    // Verify AI with 3+ cards doesn't try to double
-    // AI: 5-3 vs 6. Strategy says DOUBLE for 8 vs 6? No, 8 vs 6 = HIT.
-    // Let's use: AI 5-6=11 vs 6 -> DOUBLE. After getting a card that makes 14,
-    // should then HIT (not double again).
+  it('AI doubles on 11 vs 6 (2 cards, chart says DOUBLE)', () => {
     const draw = fixedDraw([
       card('H', 10), card('S', 10), // user: 20
       card('D', 5), card('C', 6),   // AI seat: 11
@@ -252,6 +249,17 @@ describe('AI seat play', () => {
     // AI doubled: exactly 3 cards
     expect(resolved.state.aiSeats[0]!.hands[0]!.cards.length).toBe(3)
     expect(resolved.state.aiSeats[0]!.hands[0]!.doubled).toBe(true)
+  })
+
+  it('AI uses HIT (not DD) after 3+ cards when chart says DD', () => {
+    // getCorrectActionForHand should return HIT for 3+ card hand
+    // even when the synthetic total would suggest DD
+    const action = getCorrectActionForHand(
+      [card('H', 3), card('S', 4), card('D', 4)], // 11 via 3 cards
+      card('D', 6),
+      false, false,
+    )
+    expect(action).toBe('HIT') // DD -> HIT fallback
   })
 })
 
@@ -442,5 +450,115 @@ describe('Full round integration', () => {
     // Resolve: AI stands on 17, dealer has 19
     const resolved = resolveRound(r1.state, draw)
     expect(resolved.state.userResults[0]).toBe('WIN') // 20 > 19
+  })
+})
+
+// ============================================
+// Shoe reshuffle: preDealCount resets to 0
+// ============================================
+
+describe('Shoe reshuffle resets count', () => {
+  it('checkAndReshuffle resets count to 0', () => {
+    const shoe = createShoe()
+
+    // Draw some cards and count them to build up count
+    for (let i = 0; i < 10; i++) {
+      const c = shoe.drawOne()
+      shoe.countCard(c)
+    }
+
+    // Count should be nonzero or zero depending on cards, but getCount is defined
+    const countBefore = shoe.getCount()
+    expect(typeof countBefore).toBe('number')
+
+    // Force reshuffle with huge safety margin
+    const shuffled = shoe.checkAndReshuffle(999)
+    expect(shuffled).toBe(true)
+    expect(shoe.getCount()).toBe(0)
+  })
+})
+
+// ============================================
+// SPLIT fallback: pair reformation after split
+// ============================================
+
+describe('SPLIT fallback for pair reformation', () => {
+  it('6-6 after split, draws 6 -> 12 vs dealer 2: returns HIT (not STAND)', () => {
+    // After splitting 6-6 and drawing another 6: hand is [6, 6] = 12
+    // canSplit=false, so should treat as hard 12 vs dealer 2
+    // Strategy for hard 12 vs 2 = HIT
+    const action = getCorrectActionForHand(
+      [card('H', 6), card('S', 6)],
+      card('D', 2),
+      false, false,  // can't double or split after split
+    )
+    expect(action).toBe('HIT')
+  })
+
+  it('8-8 after split, draws 8 -> 16 vs dealer 10: returns HIT', () => {
+    // Hard 16 vs 10 = HIT (basic strategy)
+    const action = getCorrectActionForHand(
+      [card('H', 8), card('S', 8)],
+      card('D', 10),
+      false, false,
+    )
+    expect(action).toBe('HIT')
+  })
+
+  it('9-9 after split, draws 9 -> 18 vs dealer 7: returns STAND', () => {
+    // Hard 18 vs 7 = STAND
+    const action = getCorrectActionForHand(
+      [card('H', 9), card('S', 9)],
+      card('D', 7),
+      false, false,
+    )
+    expect(action).toBe('STAND')
+  })
+})
+
+// ============================================
+// User all bust + AI alive -> dealer plays
+// ============================================
+
+describe('User all bust, AI alive: dealer plays', () => {
+  it('dealer draws when user busted but AI alive', () => {
+    const draw = fixedDraw([
+      card('H', 10), card('S', 6),  // user: 16
+      card('D', 10), card('C', 10), // AI: 20
+      card('H', 9), card('S', 6),   // dealer up: 9, hole: 6 -> 15
+      card('H', 10),                 // user HIT: bust (26)
+      // AI stands on 20
+      // dealer: 15, must hit
+      card('D', 2),                  // dealer: 17 -> stand
+    ])
+
+    const { state } = dealRound(draw, 1)
+    const r1 = applyFirstAction(state, 'HIT', draw)
+    expect(r1.state.userHands[0]!.busted).toBe(true)
+
+    const resolved = resolveRound(r1.state, draw)
+    // Dealer should have played (drawn cards)
+    expect(resolved.state.dealerTotal).toBe(17)
+    expect(resolved.state.dealerDrawn.length).toBeGreaterThan(0)
+  })
+
+  it('dealer does not draw when all hands busted (user + AI)', () => {
+    const draw = fixedDraw([
+      card('H', 10), card('S', 6),  // user: 16
+      card('D', 10), card('C', 6),  // AI: 16
+      card('H', 9), card('S', 10),  // dealer up: 9, hole: 10 -> 19
+      card('H', 10),                 // user HIT: bust (26)
+      // AI: 16 vs 9 -> HIT
+      card('D', 10),                 // AI: bust (26)
+      // All busted, dealer should NOT draw
+    ])
+
+    const { state } = dealRound(draw, 1)
+    const r1 = applyFirstAction(state, 'HIT', draw)
+    const resolved = resolveRound(r1.state, draw)
+
+    // Dealer reveals hole but doesn't draw
+    expect(resolved.state.dealerDrawn.length).toBe(0)
+    expect(resolved.state.userResults[0]).toBe('LOSE')
   })
 })

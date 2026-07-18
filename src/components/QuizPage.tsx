@@ -188,8 +188,8 @@ export function QuizPage() {
     shoeRef.current = shoe
     const betLevel = loadBetLevel()
     const seatCount = loadSeatCount()
-    const preDealCount = shoe.getCount()
     const shuffled = shoe.checkAndReshuffle(reshuffleSafetyMargin(seatCount))
+    const preDealCount = shoe.getCount()
     const drawCard = () => shoe.drawOne()
     const { state: roundState, faceUpCards } = dealRound(drawCard, seatCount)
     for (const c of faceUpCards) shoe.countCard(c)
@@ -317,8 +317,8 @@ export function QuizPage() {
   const handleRetry = useCallback(() => {
     const shoe = shoeRef.current!
     const seatCount = nextSeatCount
-    const preDealCount = shoe.getCount()
     const shuffled = shoe.checkAndReshuffle(reshuffleSafetyMargin(seatCount))
+    const preDealCount = shoe.getCount()
     const drawCard = () => shoe.drawOne()
     const { state: roundState, faceUpCards } = dealRound(drawCard, seatCount)
     for (const c of faceUpCards) shoe.countCard(c)

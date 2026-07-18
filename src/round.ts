@@ -42,6 +42,40 @@ export function computeHandValue(cards: Card[]): HandValue {
  * Get the correct action for a hand with 2 cards (uses full strategy).
  * For 3+ cards: compute from strategy tables with DD->HIT and SPLIT->HIT fallback.
  */
+/**
+ * Look up correct action for a hand using synthetic cards matching total/soft.
+ * DOUBLE falls back to HIT, SPLIT to HIT (only used for non-pair lookups).
+ */
+function lookupBySynthetic(hv: HandValue, dealerUpCard: Card): Action {
+  if (hv.total >= 21) return 'STAND'
+
+  let syntheticCards: [Card, Card]
+  if (hv.isSoft) {
+    const companion = hv.total - 11
+    if (companion >= 2 && companion <= 10) {
+      syntheticCards = [
+        { suit: 'H', number: 1 },
+        { suit: 'H', number: companion as Card['number'] },
+      ]
+    } else {
+      return 'STAND'
+    }
+  } else {
+    const half = Math.min(hv.total - 2, 10)
+    const other = hv.total - half
+    if (other < 2 || other > 10) return hv.total >= 17 ? 'STAND' : 'HIT'
+    syntheticCards = [
+      { suit: 'H', number: half as Card['number'] },
+      { suit: 'H', number: other as Card['number'] },
+    ]
+  }
+
+  const action = getCorrectAction(syntheticCards, dealerUpCard)
+  if (action === 'DOUBLE') return 'HIT'
+  if (action === 'SPLIT') return 'HIT'
+  return action
+}
+
 export function getCorrectActionForHand(
   cards: Card[],
   dealerUpCard: Card,
@@ -55,50 +89,16 @@ export function getCorrectActionForHand(
     const action = getCorrectAction(cards as [Card, Card], dealerUpCard)
     if (action === 'DOUBLE' && !canDouble) return 'HIT'
     if (action === 'SPLIT' && !canSplit) {
-      // For non-splittable pairs (e.g., after split), look up as hard/soft
+      // Treat as non-pair: look up by hand value (HARD/SOFT)
       const hv = computeHandValue(cards)
-      if (hv.total >= 17) return 'STAND'
-      if (hv.total <= 11) return 'HIT'
-      // Use hard table logic
-      return getCorrectAction(cards as [Card, Card], dealerUpCard) === 'SPLIT' ? 'STAND' : getCorrectAction(cards as [Card, Card], dealerUpCard)
+      return lookupBySynthetic(hv, dealerUpCard)
     }
     return action
   }
 
-  // 3+ cards: compute hand value and look up strategy
+  // 3+ cards: look up by hand value
   const hv = computeHandValue(cards)
-  if (hv.total >= 21) return 'STAND'
-
-  // Build a synthetic 2-card hand that produces the same total/soft status
-  let syntheticCards: [Card, Card]
-  if (hv.isSoft) {
-    // Soft hand: A + (total - 11)
-    const companion = hv.total - 11
-    if (companion >= 2 && companion <= 10) {
-      syntheticCards = [
-        { suit: 'H', number: 1 },
-        { suit: 'H', number: companion as Card['number'] },
-      ]
-    } else {
-      // Soft 21 or edge case: stand
-      return 'STAND'
-    }
-  } else {
-    // Hard hand: split into two cards that sum to total
-    const half = Math.min(hv.total - 2, 10)
-    const other = hv.total - half
-    if (other < 2 || other > 10) return hv.total >= 17 ? 'STAND' : 'HIT'
-    syntheticCards = [
-      { suit: 'H', number: half as Card['number'] },
-      { suit: 'H', number: other as Card['number'] },
-    ]
-  }
-
-  const action = getCorrectAction(syntheticCards, dealerUpCard)
-  // Fallback: DD -> HIT, SPLIT -> HIT (shouldn't occur for synthetic)
-  if (action === 'DOUBLE') return 'HIT'
-  if (action === 'SPLIT') return 'HIT'
-  return action
+  return lookupBySynthetic(hv, dealerUpCard)
 }
 
 // ============================================
@@ -600,14 +600,15 @@ export function resolveRound(
   const aiResult = playAllAi(state.aiSeats, state.dealerUpCard, drawCard)
   allDrawn.push(...aiResult.drawnCards)
 
-  // Check if any non-busted user hands exist (if all busted, dealer doesn't play)
-  const anyUserAlive = state.userHands.some(h => !h.busted)
+  // Check if any non-busted hands exist (user or AI). If all busted, dealer doesn't play.
+  const anyAlive = state.userHands.some(h => !h.busted)
+    || aiResult.aiSeats.some(s => s.hands.some(h => !h.busted))
 
   let dealerTotal: number
   let dealerBusted: boolean
   let dealerDrawn: Card[] = []
 
-  if (anyUserAlive) {
+  if (anyAlive) {
     const dealerResult = playDealer(
       state.dealerUpCard, state.dealerHoleCard, drawCard,
     )
