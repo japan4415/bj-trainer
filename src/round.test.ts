@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createShoe } from './shoe'
+import { clampSeatCount } from './settings'
 import {
   computeHandValue,
   dealRound,
@@ -205,6 +206,37 @@ describe('SPLIT action', () => {
     expect(r4.state.userHands[1]!.total).toBe(20)
     const r5 = applyContinueAction(r4.state, 'STAND', draw)
     expect(r5.state.phase).toBe('ROUND_OVER')
+  })
+
+  it('Q+K (10-value mix) does NOT split: different card.number', () => {
+    const draw = fixedDraw([
+      card('H', 12), card('S', 13), // user: Q+K (number 12 vs 13, not a pair)
+      card('D', 6), card('C', 10),  // dealer
+    ])
+
+    const { state } = dealRound(draw, 0)
+    const result = applyFirstAction(state, 'SPLIT', draw)
+    // Should NOT have split: still 1 hand
+    expect(result.state.userHands).toHaveLength(1)
+    expect(result.state.userHands[0]!.total).toBe(20)
+    // Should move to USER_CONTINUE (not ROUND_OVER with split)
+    expect(result.state.phase).toBe('USER_CONTINUE')
+    // No cards drawn for split
+    expect(result.drawnCards).toHaveLength(0)
+  })
+
+  it('J+J (same number) DOES split', () => {
+    const draw = fixedDraw([
+      card('H', 11), card('S', 11), // user: J+J (number 11 = 11, same)
+      card('D', 6), card('C', 10),  // dealer
+      card('H', 5), card('S', 7),   // split draws: J+5=15, J+7=17
+    ])
+
+    const { state } = dealRound(draw, 0)
+    const result = applyFirstAction(state, 'SPLIT', draw)
+    expect(result.state.userHands).toHaveLength(2)
+    expect(result.state.userHands[0]!.total).toBe(15) // J(10)+5
+    expect(result.state.userHands[1]!.total).toBe(17) // J(10)+7
   })
 })
 
@@ -560,5 +592,39 @@ describe('User all bust, AI alive: dealer plays', () => {
     // Dealer reveals hole but doesn't draw
     expect(resolved.state.dealerDrawn.length).toBe(0)
     expect(resolved.state.userResults[0]).toBe('LOSE')
+  })
+})
+
+// ============================================
+// clampSeatCount
+// ============================================
+
+describe('clampSeatCount', () => {
+  it('clamps 5 to 2', () => {
+    expect(clampSeatCount(5)).toBe(2)
+  })
+
+  it('clamps 3 to 2', () => {
+    expect(clampSeatCount(3)).toBe(2)
+  })
+
+  it('keeps 2 as 2', () => {
+    expect(clampSeatCount(2)).toBe(2)
+  })
+
+  it('keeps 1 as 1', () => {
+    expect(clampSeatCount(1)).toBe(1)
+  })
+
+  it('keeps 0 as 0', () => {
+    expect(clampSeatCount(0)).toBe(0)
+  })
+
+  it('clamps negative to 0', () => {
+    expect(clampSeatCount(-1)).toBe(0)
+  })
+
+  it('clamps NaN to 0', () => {
+    expect(clampSeatCount(NaN)).toBe(0)
   })
 })

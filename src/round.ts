@@ -306,6 +306,17 @@ export function applyFirstAction(
       const hand = state.userHands[0]!
       const card1 = hand.cards[0]!
       const card2 = hand.cards[1]!
+
+      // Pair = same card number (Q+K is NOT a pair, J+J is)
+      if (card1.number !== card2.number) {
+        // Non-pair: SPLIT is invalid. Keep hand as-is, move to USER_CONTINUE
+        newState = {
+          ...state,
+          phase: 'USER_CONTINUE',
+        }
+        break
+      }
+
       const isAceSplit = card1.number === 1
 
       // Draw one card for each split hand
