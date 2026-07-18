@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createShoe } from './shoe'
+import { clampSeatCount } from './settings'
 import {
   computeHandValue,
   dealRound,
@@ -560,5 +561,39 @@ describe('User all bust, AI alive: dealer plays', () => {
     // Dealer reveals hole but doesn't draw
     expect(resolved.state.dealerDrawn.length).toBe(0)
     expect(resolved.state.userResults[0]).toBe('LOSE')
+  })
+})
+
+// ============================================
+// clampSeatCount
+// ============================================
+
+describe('clampSeatCount', () => {
+  it('clamps 5 to 2', () => {
+    expect(clampSeatCount(5)).toBe(2)
+  })
+
+  it('clamps 3 to 2', () => {
+    expect(clampSeatCount(3)).toBe(2)
+  })
+
+  it('keeps 2 as 2', () => {
+    expect(clampSeatCount(2)).toBe(2)
+  })
+
+  it('keeps 1 as 1', () => {
+    expect(clampSeatCount(1)).toBe(1)
+  })
+
+  it('keeps 0 as 0', () => {
+    expect(clampSeatCount(0)).toBe(0)
+  })
+
+  it('clamps negative to 0', () => {
+    expect(clampSeatCount(-1)).toBe(0)
+  })
+
+  it('clamps NaN to 0', () => {
+    expect(clampSeatCount(NaN)).toBe(0)
   })
 })
