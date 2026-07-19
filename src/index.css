@@ -42,6 +42,12 @@ a {
   flex-direction: column;
 }
 
+.vegas-container > main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ========================================
    Header
    ======================================== */
@@ -92,6 +98,8 @@ a {
 .quiz-page {
   text-align: center;
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .hand-section {
@@ -697,6 +705,7 @@ a {
 
 .explanation-page {
   line-height: 1.8;
+  width: 100%;
 }
 
 .explanation-text {
@@ -818,6 +827,20 @@ a {
   box-shadow: 0 0 12px 3px rgba(255, 215, 0, 0.7);
   font-weight: 900;
   font-size: 1rem;
+}
+
+/* ========================================
+   Desktop scaling: card heights track viewport height.
+   Worst case (split + 2 AI seats + EV panel) fixed elements sum ~417px;
+   417 + main + ai + split must stay <= viewport height:
+   605px: 75+46+60 -> 598 OK  720px: 90+55+72 -> 634 OK  1080px caps: 130+80+104 -> 731 OK
+   ======================================== */
+
+@media (min-width: 601px) {
+  .playing-card { height: clamp(75px, 12.5dvh, 130px); }
+  .card-row-small .playing-card { height: clamp(46px, 7.7dvh, 80px); }
+  .card-row-split .playing-card { height: clamp(60px, 10dvh, 104px); }
+  .quiz-page { justify-content: center; }
 }
 
 /* ========================================
