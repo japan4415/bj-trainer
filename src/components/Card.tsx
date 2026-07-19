@@ -426,9 +426,11 @@ function CornerIndex({ rank, suit, color }: {
 
 interface PlayingCardProps {
   card: CardType
+  /** Stagger index for deal-in animation; undefined = no animation */
+  dealIndex?: number
 }
 
-export function PlayingCard({ card }: PlayingCardProps) {
+export function PlayingCard({ card, dealIndex }: PlayingCardProps) {
   const color = getSuitColor(card.suit)
   const rank = getRankLabel(card.number)
   const symbol = getSuitSymbol(card.suit)
@@ -440,7 +442,8 @@ export function PlayingCard({ card }: PlayingCardProps) {
   return (
     <svg
       viewBox="0 0 256 362"
-      className="playing-card"
+      className={`playing-card${dealIndex !== undefined ? ' card-deal' : ''}`}
+      style={dealIndex !== undefined ? { '--deal-index': dealIndex } as React.CSSProperties : undefined}
       aria-label={`${rank}${symbol}`}
     >
       {/* Card background */}
@@ -484,14 +487,20 @@ export function PlayingCard({ card }: PlayingCardProps) {
 }
 
 // ============================================================
-// CardBack (unchanged)
+// CardBack
 // ============================================================
 
-export function CardBack() {
+interface CardBackProps {
+  /** Stagger index for deal-in animation; undefined = no animation */
+  dealIndex?: number
+}
+
+export function CardBack({ dealIndex }: CardBackProps) {
   return (
     <svg
       viewBox="0 0 256 362"
-      className="playing-card"
+      className={`playing-card${dealIndex !== undefined ? ' card-deal' : ''}`}
+      style={dealIndex !== undefined ? { '--deal-index': dealIndex } as React.CSSProperties : undefined}
       aria-label="Face-down card"
     >
       {/* Card border */}

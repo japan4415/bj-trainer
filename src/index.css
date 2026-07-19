@@ -19,6 +19,13 @@ a {
   text-decoration: none;
 }
 
+/* (9) Global touch-action for all interactive elements */
+button,
+a {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* ========================================
    Layout
    ======================================== */
@@ -51,6 +58,7 @@ a {
   font-size: 1.4rem;
   font-weight: 700;
   margin-bottom: 4px;
+  letter-spacing: -0.02em; /* (4) Tighten large display text */
 }
 
 .diamond-icon {
@@ -94,6 +102,7 @@ a {
   color: #f0d98c;
   font-size: 1.1rem;
   margin-bottom: 4px;
+  letter-spacing: -0.01em; /* (4) Slight tightening for hand labels */
 }
 
 .card-row {
@@ -112,10 +121,35 @@ a {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   transition: transform 0.2s;
   overflow: visible;
+  transform-origin: center bottom; /* (8) Hover scale lifts off the table */
 }
 
-.playing-card:hover {
-  transform: scale(1.05);
+/* (1) Restrict hover lift effect to fine pointer devices */
+@media (hover: hover) and (pointer: fine) {
+  .playing-card:hover {
+    transform: scale(1.05);
+  }
+}
+
+/* ========================================
+   Card Deal Animation (2)
+   transform only -- layout must not grow
+   ======================================== */
+
+@keyframes card-deal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-deal {
+  animation: card-deal-in 320ms cubic-bezier(0.2, 0, 0.2, 1) both;
+  animation-delay: calc(var(--deal-index, 0) * 50ms);
 }
 
 /* ========================================
@@ -129,6 +163,35 @@ a {
 .result-text {
   color: #ffd700;
   font-size: 1rem;
+}
+
+/* ========================================
+   Result Feedback Animations (3)
+   ======================================== */
+
+@keyframes result-pulse-correct {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+@keyframes result-shake-incorrect {
+  0% { transform: translateX(0); }
+  15% { transform: translateX(-6px); }
+  30% { transform: translateX(5px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+  90% { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+
+.result-correct-anim {
+  animation: result-pulse-correct 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.result-incorrect-anim {
+  animation: result-shake-incorrect 320ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ========================================
@@ -162,11 +225,13 @@ a {
 
 .ev-label {
   color: #f0d98c;
+  letter-spacing: 0.02em; /* (4) Positive tracking for small labels */
 }
 
 .ev-value {
   font-weight: bold;
-  font-family: 'Courier New', monospace;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace; /* (10) System monospace */
+  font-variant-numeric: tabular-nums; /* (4) Stable numeric columns */
 }
 
 .ev-positive {
@@ -190,6 +255,7 @@ a {
   font-size: 0.65rem;
   margin-top: 2px;
   text-align: center;
+  letter-spacing: 0.02em; /* (4) */
 }
 
 /* ========================================
@@ -264,6 +330,7 @@ a {
   font-weight: bold;
 }
 
+/* (7) Bet toggle buttons: spring-like press feedback */
 .bet-toggle-btn {
   padding: 4px 12px;
   border: 1px solid rgba(255, 215, 0, 0.4);
@@ -271,7 +338,11 @@ a {
   color: #ccc;
   font-size: 0.75rem;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.2s, color 0.2s, transform 100ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.bet-toggle-btn:active {
+  transform: scale(0.96);
 }
 
 .bet-toggle-btn:first-of-type {
@@ -294,6 +365,7 @@ a {
   gap: 0;
 }
 
+/* (7) Seat toggle buttons: spring-like press feedback */
 .seats-toggle-btn {
   padding: 4px 10px;
   border: 1px solid rgba(255, 215, 0, 0.4);
@@ -301,7 +373,11 @@ a {
   color: #ccc;
   font-size: 0.75rem;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.2s, color 0.2s, transform 100ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.seats-toggle-btn:active {
+  transform: scale(0.96);
 }
 
 .seats-toggle-btn:first-of-type {
@@ -472,6 +548,7 @@ a {
   margin-top: 8px;
 }
 
+/* (1) Action buttons: instant press feedback, spring-like transition */
 .action-btn {
   padding: 8px 18px;
   border: none;
@@ -481,15 +558,19 @@ a {
   min-width: 90px;
   cursor: pointer;
   color: #fff;
-  transition: background-color 0.2s, transform 0.1s;
+  transition: background-color 0.2s, transform 80ms cubic-bezier(0.2, 0, 0.2, 1);
 }
 
-.action-btn:hover {
-  transform: translateY(-1px);
+/* (1) Hover lift restricted to fine pointer devices */
+@media (hover: hover) and (pointer: fine) {
+  .action-btn:hover {
+    transform: translateY(-1px);
+  }
 }
 
+/* (1) Press feedback: immediate scale-down */
 .action-btn:active {
-  transform: translateY(0);
+  transform: scale(0.94);
 }
 
 .btn-hit {
@@ -537,7 +618,7 @@ a {
 }
 
 /* ========================================
-   Strategy Table Modal Overlay
+   Strategy Table Modal Overlay (6)
    ======================================== */
 
 .table-modal-overlay {
@@ -546,14 +627,22 @@ a {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
+  animation: modal-overlay-in 250ms cubic-bezier(0.2, 0, 0.2, 1) both;
 }
 
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* (6) Material: translucent felt with blur, no overshoot */
 .table-modal-content {
   background: #124d12;
   border: 2px solid rgba(255, 215, 0, 0.5);
@@ -563,6 +652,25 @@ a {
   max-height: 90vh;
   overflow: auto;
   position: relative;
+  animation: modal-content-in 250ms cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .table-modal-content {
+    background: rgba(18, 77, 18, 0.92);
+    backdrop-filter: blur(20px) saturate(160%);
+  }
+}
+
+@keyframes modal-content-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .table-modal-close {
@@ -624,6 +732,7 @@ a {
   color: #ffd700;
   font-size: 1.3rem;
   margin-bottom: 12px;
+  letter-spacing: -0.02em; /* (4) Tighten large text */
 }
 
 .strategy-table-scroll {
@@ -814,5 +923,54 @@ a {
   .seats-toggle-btn {
     padding: 3px 8px;
     font-size: 0.65rem;
+  }
+}
+
+/* ========================================
+   Reduced Motion (5)
+   Replace spring/entrance/shake animations with
+   gentle opacity fades or none; keep functional
+   transitions instant.
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .card-deal {
+    animation: none;
+    opacity: 1;
+  }
+
+  .result-correct-anim,
+  .result-incorrect-anim {
+    animation: none;
+  }
+
+  .table-modal-overlay {
+    animation: none;
+  }
+
+  .table-modal-content {
+    animation: none;
+  }
+
+  .action-btn {
+    transition: background-color 0.2s;
+  }
+
+  .bet-toggle-btn,
+  .seats-toggle-btn {
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .playing-card {
+    transition: none;
+  }
+
+  /* Neutralize hover transforms for reduced-motion users */
+  .playing-card:hover {
+    transform: none;
+  }
+
+  .action-btn:hover {
+    transform: none;
   }
 }

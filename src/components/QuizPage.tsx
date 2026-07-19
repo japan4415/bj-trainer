@@ -151,6 +151,9 @@ function resultClass(r: RoundResult): string {
 export function QuizPage() {
   const shoeRef = useRef<Shoe | null>(null)
   const initialGameRef = useRef<GameState | null>(null)
+  /** Counter for round changes; used as key to re-trigger deal animations (useRef for HMR safety) */
+  const roundCounterRef = useRef(0)
+  const [roundKey, setRoundKey] = useState(() => roundCounterRef.current)
 
   if (shoeRef.current === null) {
     const shoe = createShoe()
@@ -315,6 +318,8 @@ export function QuizPage() {
     })
     setShowTable(false)
     setEVInfo(null)
+    roundCounterRef.current++
+    setRoundKey(roundCounterRef.current)
   }, [nextBetLevel, nextSeatCount])
 
   const handleNextBetToggle = useCallback((level: BetLevel) => {
@@ -351,6 +356,23 @@ export function QuizPage() {
     ? computeHandValue([game.round.dealerUpCard, game.round.dealerHoleCard, ...game.round.dealerDrawn])
     : null
 
+  // (2) Card deal stagger: compute per-card deal index
+  // Order: dealer(2) → AI seats → player(2)
+  const aiCardCount = game.round.aiSeats.reduce(
+    (sum: number, seat: AiSeat) => sum + seat.hands.reduce((s: number, h: PlayerHand) => s + h.cards.length, 0), 0
+  )
+  const playerDealOffset = 2 + aiCardCount
+
+  // M-1: Track previous card counts so newly appended cards animate but existing ones do not
+  const prevDealerCountRef = useRef(dealerCards.length)
+  const prevPlayerCountsRef = useRef<number[]>(game.round.userHands.map((h: PlayerHand) => h.cards.length))
+
+  // On phase change to CONTINUE/RESOLVED or new cards drawn, update refs AFTER render
+  useEffect(() => {
+    prevDealerCountRef.current = dealerCards.length
+    prevPlayerCountsRef.current = game.round.userHands.map((h: PlayerHand) => h.cards.length)
+  })
+
   return (
     <div className="quiz-page">
       {/* Shuffle notification */}
@@ -371,36 +393,48 @@ export function QuizPage() {
           )}
         </h2>
         <div className="card-row">
-          {dealerCards.map((c, i) =>
-            c === 'back'
-              ? <CardBack key={`dealer-back-${i}`} />
-              : <PlayingCard key={`dealer-${i}`} card={c} />
-          )}
+          {dealerCards.map((c, i) => {
+            // Initial deal cards always get dealIndex (M-2: animation class stays regardless of phase)
+            // Newly revealed cards (RESOLVED) get dealIndex 0 (no stagger, just animate in)
+            const isInitialDeal = i < 2
+            const isNewCard = i >= prevDealerCountRef.current
+            const idx = isInitialDeal ? i : isNewCard ? 0 : undefined
+            return c === 'back'
+              ? <CardBack key={`dealer-back-${roundKey}-${i}`} dealIndex={idx} />
+              : <PlayingCard key={`dealer-${roundKey}-${i}`} card={c} dealIndex={idx} />
+          })}
         </div>
       </div>
 
       {/* AI seats (horizontal layout) */}
-      {game.round.aiSeats.length > 0 && (
-        <div className="ai-seats-row">
-          {game.round.aiSeats.map((seat: AiSeat, seatIdx: number) => (
-            <div key={`ai-${seatIdx}`} className="ai-seat-col">
-              <h2 className="hand-label ai-seat-label">
-                席{seatIdx + 2}
-                {isResolved && seat.hands.map((h: PlayerHand, hi: number) => (
-                  <span key={hi} className="hand-total"> ({handTotalDisplay(h)})</span>
-                ))}
-              </h2>
-              {seat.hands.map((h: PlayerHand, hi: number) => (
-                <div key={hi} className="card-row card-row-small">
-                  {h.cards.map((c: CardType, ci: number) => (
-                    <PlayingCard key={`ai-${seatIdx}-${hi}-${ci}`} card={c} />
+      {game.round.aiSeats.length > 0 && (() => {
+        // Deal stagger: dealer has 2 cards (indices 0,1), AI seats start at 2
+        let aiDealOffset = 2
+        return (
+          <div className="ai-seats-row">
+            {game.round.aiSeats.map((seat: AiSeat, seatIdx: number) => (
+              <div key={`ai-${seatIdx}`} className="ai-seat-col">
+                <h2 className="hand-label ai-seat-label">
+                  席{seatIdx + 2}
+                  {isResolved && seat.hands.map((h: PlayerHand, hi: number) => (
+                    <span key={hi} className="hand-total"> ({handTotalDisplay(h)})</span>
                   ))}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+                </h2>
+                {seat.hands.map((h: PlayerHand, hi: number) => (
+                  <div key={hi} className="card-row card-row-small">
+                    {h.cards.map((c: CardType, ci: number) => {
+                      const idx = aiDealOffset++
+                      return (
+                        <PlayingCard key={`ai-${roundKey}-${seatIdx}-${hi}-${ci}`} card={c} dealIndex={idx} />
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )
+      })()}
 
       {/* Player section */}
       {isSplit ? (
@@ -419,9 +453,12 @@ export function QuizPage() {
                 )}
               </h2>
               <div className="card-row card-row-split">
-                {hand.cards.map((c: CardType, ci: number) => (
-                  <PlayingCard key={`user-${idx}-${ci}`} card={c} />
-                ))}
+                {hand.cards.map((c: CardType, ci: number) => {
+                  const prevCount = prevPlayerCountsRef.current[idx] ?? 0
+                  // Initial deal cards always animate with stagger; new cards animate with dealIndex 0
+                  const dealIdx = ci < 2 ? playerDealOffset + ci : ci >= prevCount ? 0 : undefined
+                  return <PlayingCard key={`user-${roundKey}-${idx}-${ci}`} card={c} dealIndex={dealIdx} />
+                })}
                 {hand.doubled && <span className="doubled-badge">x2</span>}
               </div>
             </div>
@@ -441,9 +478,12 @@ export function QuizPage() {
             )}
           </h2>
           <div className="card-row">
-            {game.round.userHands[0]!.cards.map((c: CardType, ci: number) => (
-              <PlayingCard key={`user-0-${ci}`} card={c} />
-            ))}
+            {game.round.userHands[0]!.cards.map((c: CardType, ci: number) => {
+              const prevCount = prevPlayerCountsRef.current[0] ?? 0
+              // Initial deal cards always animate with stagger; new cards animate with dealIndex 0
+              const dealIdx = ci < 2 ? playerDealOffset + ci : ci >= prevCount ? 0 : undefined
+              return <PlayingCard key={`user-0-${roundKey}-${ci}`} card={c} dealIndex={dealIdx} />
+            })}
             {game.round.userHands[0]!.doubled && <span className="doubled-badge">x2</span>}
           </div>
         </div>
@@ -461,9 +501,12 @@ export function QuizPage() {
         </div>
       )}
 
-      {/* First action result */}
+      {/* First action result (3) — key forces remount to re-trigger animation */}
       {game.selectedFirstAction !== null && (
-        <div className="result-area">
+        <div
+          key={`result-${cumulative.count}`}
+          className={`result-area ${game.isFirstCorrect ? 'result-correct-anim' : 'result-incorrect-anim'}`}
+        >
           {game.isFirstCorrect ? (
             <p className="result-text"><strong>Correct!</strong></p>
           ) : (
