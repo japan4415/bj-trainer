@@ -102,6 +102,17 @@ a {
   flex-direction: column;
 }
 
+.game-column,
+.side-panel {
+  display: contents;
+}
+/* With display:contents all children are direct flex items of .quiz-page.
+   order:1 pushes action buttons after sidebar content, matching the current
+   single-column visual order (EV -> info -> settings -> buttons). */
+.action-buttons {
+  order: 1;
+}
+
 .hand-section {
   margin-bottom: 6px;
 }
@@ -847,7 +858,7 @@ a {
 
 /* Short-viewport compact tier: recover ~60px vertical space so the
    resolved state (2 AI seats + EV panel) fits within 605px height. */
-@media (min-width: 601px) and (max-height: 660px) {
+@media (min-width: 601px) and (max-width: 1023px) and (max-height: 674px) {
   .vegas-container { padding-top: 8px; padding-bottom: 8px; }
   .header { margin-bottom: 4px; padding-bottom: 3px; }
   .hand-section { margin-bottom: 3px; }
@@ -860,6 +871,65 @@ a {
   .hand-info-bar { margin-top: 1px; margin-bottom: 0; }
   .next-settings-section { margin-top: 1px; margin-bottom: 0; }
   .action-buttons { margin-top: 3px; }
+}
+
+/* ========================================
+   Desktop 2-column layout: game column + right sidebar.
+   EV panel, hand info, and next-round settings move to a
+   translucent sidebar, freeing vertical space for bigger cards.
+   ======================================== */
+
+@media (min-width: 1024px) {
+  .vegas-container {
+    max-width: 1200px; /* current 900px is too narrow for game column + 320px sidebar */
+  }
+
+  .quiz-page {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+  }
+
+  .game-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 0;
+  }
+
+  .action-buttons { order: 0; } /* back to DOM order inside game column */
+
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-self: center;
+    background: rgba(0, 0, 0, 0.2); /* fallback */
+    border: 1px solid rgba(255, 215, 0, 0.15);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+  @supports (backdrop-filter: blur(1px)) {
+    .side-panel {
+      background: rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(16px) saturate(140%);
+    }
+  }
+
+  .side-panel .ev-panel {
+    max-width: none;
+    margin: 0;
+  }
+
+  /* Bigger cards: EV panel/info/settings moved out of the vertical stack (~140px freed).
+     Worst-case check (resolved + split + 2 AI): fixed elems ~178px + header/padding ~74px;
+     605px: mins 80+50+64=194 -> fits with ~159px margin; 1080px: caps 150+92+115=357 -> fits. */
+  .playing-card { height: clamp(80px, 13.5dvh, 150px); }
+  .card-row-small .playing-card { height: clamp(50px, 8.5dvh, 92px); }
+  .card-row-split .playing-card { height: clamp(64px, 11dvh, 115px); }
 }
 
 /* ========================================

@@ -375,6 +375,7 @@ export function QuizPage() {
 
   return (
     <div className="quiz-page">
+      <div className="game-column">
       {/* Shuffle notification */}
       {game.shuffled && (
         <div className="shuffle-notification">
@@ -517,6 +518,36 @@ export function QuizPage() {
         </div>
       )}
 
+      {/* Action buttons */}
+      <div className="action-buttons">
+        {game.phase === 'FIRST_ACTION' && (
+          <>
+            <button className="action-btn btn-hit" onClick={() => handleFirstAction('HIT')}>HIT</button>
+            <button className="action-btn btn-stand" onClick={() => handleFirstAction('STAND')}>STAND</button>
+            <button className="action-btn btn-double" onClick={() => handleFirstAction('DOUBLE')}>DOUBLE</button>
+            <button className="action-btn btn-split" onClick={() => handleFirstAction('SPLIT')}>SPLIT</button>
+          </>
+        )}
+        {game.phase === 'CONTINUE' && activeHand && !activeHand.done && (
+          <>
+            <button className="action-btn btn-hit" onClick={() => handleContinueAction('HIT')}>HIT</button>
+            <button className="action-btn btn-stand" onClick={() => handleContinueAction('STAND')}>STAND</button>
+          </>
+        )}
+        {isResolved && (
+          <>
+            <button className="action-btn btn-retry" onClick={handleRetry}>Retry</button>
+            {game.isFirstCorrect === false && (
+              <button className="action-btn btn-show-table" onClick={handleToggleTable}>
+                {showTable ? '表を閉じる' : '表で確認'}
+              </button>
+            )}
+          </>
+        )}
+      </div>
+      </div>
+
+      <aside className="side-panel">
       {/* EV Panel */}
       {game.selectedFirstAction !== null && evInfo && (
         <div className="ev-panel">
@@ -616,34 +647,7 @@ export function QuizPage() {
           </div>
         </div>
       )}
-
-      {/* Action buttons */}
-      <div className="action-buttons">
-        {game.phase === 'FIRST_ACTION' && (
-          <>
-            <button className="action-btn btn-hit" onClick={() => handleFirstAction('HIT')}>HIT</button>
-            <button className="action-btn btn-stand" onClick={() => handleFirstAction('STAND')}>STAND</button>
-            <button className="action-btn btn-double" onClick={() => handleFirstAction('DOUBLE')}>DOUBLE</button>
-            <button className="action-btn btn-split" onClick={() => handleFirstAction('SPLIT')}>SPLIT</button>
-          </>
-        )}
-        {game.phase === 'CONTINUE' && activeHand && !activeHand.done && (
-          <>
-            <button className="action-btn btn-hit" onClick={() => handleContinueAction('HIT')}>HIT</button>
-            <button className="action-btn btn-stand" onClick={() => handleContinueAction('STAND')}>STAND</button>
-          </>
-        )}
-        {isResolved && (
-          <>
-            <button className="action-btn btn-retry" onClick={handleRetry}>Retry</button>
-            {game.isFirstCorrect === false && (
-              <button className="action-btn btn-show-table" onClick={handleToggleTable}>
-                {showTable ? '表を閉じる' : '表で確認'}
-              </button>
-            )}
-          </>
-        )}
-      </div>
+      </aside>
 
       {/* Strategy table modal overlay */}
       {isResolved && game.isFirstCorrect === false && showTable && (() => {
