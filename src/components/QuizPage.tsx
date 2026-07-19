@@ -375,247 +375,251 @@ export function QuizPage() {
 
   return (
     <div className="quiz-page">
-      {/* Shuffle notification */}
-      {game.shuffled && (
-        <div className="shuffle-notification">
-          シャッフルしました（カウントリセット）
-        </div>
-      )}
-
-      {/* Dealer section */}
-      <div className="hand-section">
-        <h2 className="hand-label">
-          Dealer
-          {isResolved && dealerHv && (
-            <span className="hand-total">
-              {' '}({game.round.dealerBusted ? `${dealerHv.total} BUST` : dealerHv.total})
-            </span>
-          )}
-        </h2>
-        <div className="card-row">
-          {dealerCards.map((c, i) => {
-            // Initial deal cards always get dealIndex (M-2: animation class stays regardless of phase)
-            // Newly revealed cards (RESOLVED) get dealIndex 0 (no stagger, just animate in)
-            const isInitialDeal = i < 2
-            const isNewCard = i >= prevDealerCountRef.current
-            const idx = isInitialDeal ? i : isNewCard ? 0 : undefined
-            return c === 'back'
-              ? <CardBack key={`dealer-back-${roundKey}-${i}`} dealIndex={idx} />
-              : <PlayingCard key={`dealer-${roundKey}-${i}`} card={c} dealIndex={idx} />
-          })}
-        </div>
-      </div>
-
-      {/* AI seats (horizontal layout) */}
-      {game.round.aiSeats.length > 0 && (() => {
-        // Deal stagger: dealer has 2 cards (indices 0,1), AI seats start at 2
-        let aiDealOffset = 2
-        return (
-          <div className="ai-seats-row">
-            {game.round.aiSeats.map((seat: AiSeat, seatIdx: number) => (
-              <div key={`ai-${seatIdx}`} className="ai-seat-col">
-                <h2 className="hand-label ai-seat-label">
-                  席{seatIdx + 2}
-                  {isResolved && seat.hands.map((h: PlayerHand, hi: number) => (
-                    <span key={hi} className="hand-total"> ({handTotalDisplay(h)})</span>
-                  ))}
-                </h2>
-                {seat.hands.map((h: PlayerHand, hi: number) => (
-                  <div key={hi} className="card-row card-row-small">
-                    {h.cards.map((c: CardType, ci: number) => {
-                      const idx = aiDealOffset++
-                      return (
-                        <PlayingCard key={`ai-${roundKey}-${seatIdx}-${hi}-${ci}`} card={c} dealIndex={idx} />
-                      )
-                    })}
-                  </div>
-                ))}
-              </div>
-            ))}
+      <div className="game-column">
+        {/* Shuffle notification */}
+        {game.shuffled && (
+          <div className="shuffle-notification">
+            シャッフルしました（カウントリセット）
           </div>
-        )
-      })()}
+        )}
 
-      {/* Player section */}
-      {isSplit ? (
-        <div className="split-hands-row">
-          {game.round.userHands.map((hand: PlayerHand, idx: number) => (
-            <div key={`user-${idx}`} className={`split-hand-col ${game.phase === 'CONTINUE' && idx === game.round.activeUserHandIndex ? 'active-hand' : ''}`}>
-              <h2 className="hand-label split-hand-label">
-                Hand {idx + 1}
-                {(isResolved || hand.done) && (
-                  <span className="hand-total"> ({handTotalDisplay(hand)})</span>
-                )}
-                {isResolved && game.round.userResults[idx] !== undefined && (
-                  <span className={`round-result ${resultClass(game.round.userResults[idx]!)}`}>
-                    {' '}{resultLabel(game.round.userResults[idx]!)}
-                  </span>
-                )}
-              </h2>
-              <div className="card-row card-row-split">
-                {hand.cards.map((c: CardType, ci: number) => {
-                  const prevCount = prevPlayerCountsRef.current[idx] ?? 0
-                  // Initial deal cards always animate with stagger; new cards animate with dealIndex 0
-                  const dealIdx = ci < 2 ? playerDealOffset + ci : ci >= prevCount ? 0 : undefined
-                  return <PlayingCard key={`user-${roundKey}-${idx}-${ci}`} card={c} dealIndex={dealIdx} />
-                })}
-                {hand.doubled && <span className="doubled-badge">x2</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
+        {/* Dealer section */}
         <div className="hand-section">
           <h2 className="hand-label">
-            You
-            {(isResolved || game.round.userHands[0]!.done) && (
-              <span className="hand-total"> ({handTotalDisplay(game.round.userHands[0]!)})</span>
-            )}
-            {isResolved && game.round.userResults[0] !== undefined && (
-              <span className={`round-result ${resultClass(game.round.userResults[0]!)}`}>
-                {' '}{resultLabel(game.round.userResults[0]!)}
+            Dealer
+            {isResolved && dealerHv && (
+              <span className="hand-total">
+                {' '}({game.round.dealerBusted ? `${dealerHv.total} BUST` : dealerHv.total})
               </span>
             )}
           </h2>
           <div className="card-row">
-            {game.round.userHands[0]!.cards.map((c: CardType, ci: number) => {
-              const prevCount = prevPlayerCountsRef.current[0] ?? 0
-              // Initial deal cards always animate with stagger; new cards animate with dealIndex 0
-              const dealIdx = ci < 2 ? playerDealOffset + ci : ci >= prevCount ? 0 : undefined
-              return <PlayingCard key={`user-0-${roundKey}-${ci}`} card={c} dealIndex={dealIdx} />
+            {dealerCards.map((c, i) => {
+              // Initial deal cards always get dealIndex (M-2: animation class stays regardless of phase)
+              // Newly revealed cards (RESOLVED) get dealIndex 0 (no stagger, just animate in)
+              const isInitialDeal = i < 2
+              const isNewCard = i >= prevDealerCountRef.current
+              const idx = isInitialDeal ? i : isNewCard ? 0 : undefined
+              return c === 'back'
+                ? <CardBack key={`dealer-back-${roundKey}-${i}`} dealIndex={idx} />
+                : <PlayingCard key={`dealer-${roundKey}-${i}`} card={c} dealIndex={idx} />
             })}
-            {game.round.userHands[0]!.doubled && <span className="doubled-badge">x2</span>}
           </div>
         </div>
-      )}
 
-      {/* Continue feedback (2nd action onward) */}
-      {game.round.continueFeedback.length > 0 && (
-        <div className="continue-feedback">
-          {game.round.continueFeedback.map((fb: ContinueFeedback, i: number) => (
-            <span key={i} className={`feedback-item ${fb.action === fb.correctAction ? 'feedback-correct' : 'feedback-incorrect'}`}>
-              {fb.action === fb.correctAction ? '✓' : '✗'}{fb.action}
-              {fb.action !== fb.correctAction && `(${fb.correctAction})`}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* First action result (3) — key forces remount to re-trigger animation */}
-      {game.selectedFirstAction !== null && (
-        <div
-          key={`result-${cumulative.count}`}
-          className={`result-area ${game.isFirstCorrect ? 'result-correct-anim' : 'result-incorrect-anim'}`}
-        >
-          {game.isFirstCorrect ? (
-            <p className="result-text"><strong>Correct!</strong></p>
-          ) : (
-            <p className="result-text">
-              <strong>Incorrect. {getActionLabel(game.firstActionCorrect)} is better.</strong>
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* EV Panel */}
-      {game.selectedFirstAction !== null && evInfo && (
-        <div className="ev-panel">
-          <div className="ev-row ev-row-current">
-            <span className="ev-label">この回答のEV:</span>
-            <span className={`ev-value ${evInfo.selectedEV !== null && evInfo.selectedEV < 0 ? 'ev-negative' : 'ev-positive'}`}>
-              {evInfo.splitUnavailable
-                ? `SPLIT不可 (${evInfo.selectedEV !== null ? formatEV(evInfo.selectedEV) : '---'}を計上)`
-                : evInfo.selectedEV !== null ? formatEV(evInfo.selectedEV) : '---'}
-            </span>
-            <span className="ev-separator">|</span>
-            <span className="ev-label">最適 ({getActionLabel(evInfo.optimalAction)}):</span>
-            <span className="ev-value ev-positive">{formatEV(evInfo.optimalEV)}</span>
-            <span className="ev-separator">|</span>
-            <span className="ev-label">差:</span>
-            <span className={`ev-value ${evInfo.evDiff !== null && evInfo.evDiff < -0.0005 ? 'ev-negative' : 'ev-optimal'}`}>
-              {evInfo.evDiff !== null
-                ? (Math.abs(evInfo.evDiff) < 0.0005 ? '最適!' : formatEV(evInfo.evDiff))
-                : '---'}
-            </span>
-          </div>
-
-          <div className="ev-row ev-row-bet">
-            <span className={`bet-judgment ${betCorrect ? 'bet-correct' : 'bet-incorrect'}`}>
-              ベット: {betCorrect ? '○ 正解' : '✗ 不正解'}
-              （配布前カウント {formatCount(game.preDealCount)} → {recommendedBet === 'x2' ? 'x2' : 'ノーマル'}推奨）
-            </span>
-            <span className="ev-separator">|</span>
-            <span className="ev-label">
-              ラウンド終了カウント: {formatCount(game.roundEndCount ?? game.evCount)}
-            </span>
-          </div>
-
-          {cumulative.count > 0 && (
-            <div className="ev-row ev-row-cumulative">
-              <span className="ev-label">累積 ({cumulative.count}問):</span>
-              <span className="ev-label">あなた</span>
-              <span className={`ev-value ${cumulative.totalSelectedEV < 0 ? 'ev-negative' : 'ev-positive'}`}>
-                {formatEV(cumulative.totalSelectedEV)}
-              </span>
-              <span className="ev-separator">|</span>
-              <span className="ev-label">最適</span>
-              <span className={`ev-value ${cumulative.totalOptimalEV < 0 ? 'ev-negative' : 'ev-positive'}`}>
-                {formatEV(cumulative.totalOptimalEV)}
-              </span>
-              <span className="ev-separator">|</span>
-              <span className="ev-label">差</span>
-              <span className={`ev-value ${(cumulative.totalSelectedEV - cumulative.totalOptimalEV) < -0.0005 ? 'ev-negative' : 'ev-optimal'}`}>
-                {formatEV(cumulative.totalSelectedEV - cumulative.totalOptimalEV)}
-              </span>
-              <span className="ev-separator">|</span>
-              <span className="ev-label">ベット正解率:</span>
-              <span className="ev-value ev-positive">
-                {betStats.correct}/{betStats.total}
-              </span>
-            </div>
-          )}
-          <div className="ev-note">
-            EVはA-5補正済み（カウント {formatCount(game.evCount)} / 残り {game.evRemaining}枚）
-          </div>
-        </div>
-      )}
-
-      {/* Hand info bar */}
-      <div className="hand-info-bar">
-        <span className="hand-info-item">Bet: {game.lockedBetLevel === 'x2' ? 'x2' : 'ノーマル'}</span>
-        <span className="hand-info-item">残り {game.remaining} 枚</span>
-      </div>
-
-      {/* Next settings (shown only when resolved) */}
-      {isResolved && (
-        <div className="next-settings-section">
-          <div className="next-bet-section">
-            <span className="bet-toggle-label">次のベット:</span>
-            <div className="bet-toggle">
-              <button
-                className={`bet-toggle-btn ${nextBetLevel === 'normal' ? 'bet-toggle-active' : ''}`}
-                onClick={() => handleNextBetToggle('normal')}
-              >ノーマル</button>
-              <button
-                className={`bet-toggle-btn ${nextBetLevel === 'x2' ? 'bet-toggle-active' : ''}`}
-                onClick={() => handleNextBetToggle('x2')}
-              >x2</button>
-            </div>
-          </div>
-          <div className="next-seats-section">
-            <span className="bet-toggle-label">他の席:</span>
-            <div className="seats-toggle">
-              {Array.from({ length: MAX_AI_SEATS + 1 }, (_, n) => n).map(n => (
-                <button
-                  key={n}
-                  className={`seats-toggle-btn ${nextSeatCount === n ? 'seats-toggle-active' : ''}`}
-                  onClick={() => handleNextSeatCount(n)}
-                >{n}</button>
+        {/* AI seats (horizontal layout) */}
+        {game.round.aiSeats.length > 0 && (() => {
+          // Deal stagger: dealer has 2 cards (indices 0,1), AI seats start at 2
+          let aiDealOffset = 2
+          return (
+            <div className="ai-seats-row">
+              {game.round.aiSeats.map((seat: AiSeat, seatIdx: number) => (
+                <div key={`ai-${seatIdx}`} className="ai-seat-col">
+                  <h2 className="hand-label ai-seat-label">
+                    席{seatIdx + 2}
+                    {isResolved && seat.hands.map((h: PlayerHand, hi: number) => (
+                      <span key={hi} className="hand-total"> ({handTotalDisplay(h)})</span>
+                    ))}
+                  </h2>
+                  {seat.hands.map((h: PlayerHand, hi: number) => (
+                    <div key={hi} className="card-row card-row-small">
+                      {h.cards.map((c: CardType, ci: number) => {
+                        const idx = aiDealOffset++
+                        return (
+                          <PlayingCard key={`ai-${roundKey}-${seatIdx}-${hi}-${ci}`} card={c} dealIndex={idx} />
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
               ))}
             </div>
+          )
+        })()}
+
+        {/* Player section */}
+        {isSplit ? (
+          <div className="split-hands-row">
+            {game.round.userHands.map((hand: PlayerHand, idx: number) => (
+              <div key={`user-${idx}`} className={`split-hand-col ${game.phase === 'CONTINUE' && idx === game.round.activeUserHandIndex ? 'active-hand' : ''}`}>
+                <h2 className="hand-label split-hand-label">
+                  Hand {idx + 1}
+                  {(isResolved || hand.done) && (
+                    <span className="hand-total"> ({handTotalDisplay(hand)})</span>
+                  )}
+                  {isResolved && game.round.userResults[idx] !== undefined && (
+                    <span className={`round-result ${resultClass(game.round.userResults[idx]!)}`}>
+                      {' '}{resultLabel(game.round.userResults[idx]!)}
+                    </span>
+                  )}
+                </h2>
+                <div className="card-row card-row-split">
+                  {hand.cards.map((c: CardType, ci: number) => {
+                    const prevCount = prevPlayerCountsRef.current[idx] ?? 0
+                    // Initial deal cards always animate with stagger; new cards animate with dealIndex 0
+                    const dealIdx = ci < 2 ? playerDealOffset + ci : ci >= prevCount ? 0 : undefined
+                    return <PlayingCard key={`user-${roundKey}-${idx}-${ci}`} card={c} dealIndex={dealIdx} />
+                  })}
+                  {hand.doubled && <span className="doubled-badge">x2</span>}
+                </div>
+              </div>
+            ))}
           </div>
+        ) : (
+          <div className="hand-section">
+            <h2 className="hand-label">
+              You
+              {(isResolved || game.round.userHands[0]!.done) && (
+                <span className="hand-total"> ({handTotalDisplay(game.round.userHands[0]!)})</span>
+              )}
+              {isResolved && game.round.userResults[0] !== undefined && (
+                <span className={`round-result ${resultClass(game.round.userResults[0]!)}`}>
+                  {' '}{resultLabel(game.round.userResults[0]!)}
+                </span>
+              )}
+            </h2>
+            <div className="card-row">
+              {game.round.userHands[0]!.cards.map((c: CardType, ci: number) => {
+                const prevCount = prevPlayerCountsRef.current[0] ?? 0
+                // Initial deal cards always animate with stagger; new cards animate with dealIndex 0
+                const dealIdx = ci < 2 ? playerDealOffset + ci : ci >= prevCount ? 0 : undefined
+                return <PlayingCard key={`user-0-${roundKey}-${ci}`} card={c} dealIndex={dealIdx} />
+              })}
+              {game.round.userHands[0]!.doubled && <span className="doubled-badge">x2</span>}
+            </div>
+          </div>
+        )}
+
+        {/* Continue feedback (2nd action onward) */}
+        {game.round.continueFeedback.length > 0 && (
+          <div className="continue-feedback">
+            {game.round.continueFeedback.map((fb: ContinueFeedback, i: number) => (
+              <span key={i} className={`feedback-item ${fb.action === fb.correctAction ? 'feedback-correct' : 'feedback-incorrect'}`}>
+                {fb.action === fb.correctAction ? '✓' : '✗'}{fb.action}
+                {fb.action !== fb.correctAction && `(${fb.correctAction})`}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* First action result (3) — key forces remount to re-trigger animation */}
+        {game.selectedFirstAction !== null && (
+          <div
+            key={`result-${cumulative.count}`}
+            className={`result-area ${game.isFirstCorrect ? 'result-correct-anim' : 'result-incorrect-anim'}`}
+          >
+            {game.isFirstCorrect ? (
+              <p className="result-text"><strong>Correct!</strong></p>
+            ) : (
+              <p className="result-text">
+                <strong>Incorrect. {getActionLabel(game.firstActionCorrect)} is better.</strong>
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <aside className="side-panel">
+        {/* EV Panel */}
+        {game.selectedFirstAction !== null && evInfo && (
+          <div className="ev-panel">
+            <div className="ev-row ev-row-current">
+              <span className="ev-label">この回答のEV:</span>
+              <span className={`ev-value ${evInfo.selectedEV !== null && evInfo.selectedEV < 0 ? 'ev-negative' : 'ev-positive'}`}>
+                {evInfo.splitUnavailable
+                  ? `SPLIT不可 (${evInfo.selectedEV !== null ? formatEV(evInfo.selectedEV) : '---'}を計上)`
+                  : evInfo.selectedEV !== null ? formatEV(evInfo.selectedEV) : '---'}
+              </span>
+              <span className="ev-separator">|</span>
+              <span className="ev-label">最適 ({getActionLabel(evInfo.optimalAction)}):</span>
+              <span className="ev-value ev-positive">{formatEV(evInfo.optimalEV)}</span>
+              <span className="ev-separator">|</span>
+              <span className="ev-label">差:</span>
+              <span className={`ev-value ${evInfo.evDiff !== null && evInfo.evDiff < -0.0005 ? 'ev-negative' : 'ev-optimal'}`}>
+                {evInfo.evDiff !== null
+                  ? (Math.abs(evInfo.evDiff) < 0.0005 ? '最適!' : formatEV(evInfo.evDiff))
+                  : '---'}
+              </span>
+            </div>
+
+            <div className="ev-row ev-row-bet">
+              <span className={`bet-judgment ${betCorrect ? 'bet-correct' : 'bet-incorrect'}`}>
+                ベット: {betCorrect ? '○ 正解' : '✗ 不正解'}
+                （配布前カウント {formatCount(game.preDealCount)} → {recommendedBet === 'x2' ? 'x2' : 'ノーマル'}推奨）
+              </span>
+              <span className="ev-separator">|</span>
+              <span className="ev-label">
+                ラウンド終了カウント: {formatCount(game.roundEndCount ?? game.evCount)}
+              </span>
+            </div>
+
+            {cumulative.count > 0 && (
+              <div className="ev-row ev-row-cumulative">
+                <span className="ev-label">累積 ({cumulative.count}問):</span>
+                <span className="ev-label">あなた</span>
+                <span className={`ev-value ${cumulative.totalSelectedEV < 0 ? 'ev-negative' : 'ev-positive'}`}>
+                  {formatEV(cumulative.totalSelectedEV)}
+                </span>
+                <span className="ev-separator">|</span>
+                <span className="ev-label">最適</span>
+                <span className={`ev-value ${cumulative.totalOptimalEV < 0 ? 'ev-negative' : 'ev-positive'}`}>
+                  {formatEV(cumulative.totalOptimalEV)}
+                </span>
+                <span className="ev-separator">|</span>
+                <span className="ev-label">差</span>
+                <span className={`ev-value ${(cumulative.totalSelectedEV - cumulative.totalOptimalEV) < -0.0005 ? 'ev-negative' : 'ev-optimal'}`}>
+                  {formatEV(cumulative.totalSelectedEV - cumulative.totalOptimalEV)}
+                </span>
+                <span className="ev-separator">|</span>
+                <span className="ev-label">ベット正解率:</span>
+                <span className="ev-value ev-positive">
+                  {betStats.correct}/{betStats.total}
+                </span>
+              </div>
+            )}
+            <div className="ev-note">
+              EVはA-5補正済み（カウント {formatCount(game.evCount)} / 残り {game.evRemaining}枚）
+            </div>
+          </div>
+        )}
+
+        {/* Hand info bar */}
+        <div className="hand-info-bar">
+          <span className="hand-info-item">Bet: {game.lockedBetLevel === 'x2' ? 'x2' : 'ノーマル'}</span>
+          <span className="hand-info-item">残り {game.remaining} 枚</span>
         </div>
-      )}
+
+        {/* Next settings (shown only when resolved) */}
+        {isResolved && (
+          <div className="next-settings-section">
+            <div className="next-bet-section">
+              <span className="bet-toggle-label">次のベット:</span>
+              <div className="bet-toggle">
+                <button
+                  className={`bet-toggle-btn ${nextBetLevel === 'normal' ? 'bet-toggle-active' : ''}`}
+                  onClick={() => handleNextBetToggle('normal')}
+                >ノーマル</button>
+                <button
+                  className={`bet-toggle-btn ${nextBetLevel === 'x2' ? 'bet-toggle-active' : ''}`}
+                  onClick={() => handleNextBetToggle('x2')}
+                >x2</button>
+              </div>
+            </div>
+            <div className="next-seats-section">
+              <span className="bet-toggle-label">他の席:</span>
+              <div className="seats-toggle">
+                {Array.from({ length: MAX_AI_SEATS + 1 }, (_, n) => n).map(n => (
+                  <button
+                    key={n}
+                    className={`seats-toggle-btn ${nextSeatCount === n ? 'seats-toggle-active' : ''}`}
+                    onClick={() => handleNextSeatCount(n)}
+                  >{n}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </aside>
 
       {/* Action buttons */}
       <div className="action-buttons">
