@@ -106,12 +106,6 @@ a {
 .side-panel {
   display: contents;
 }
-/* With display:contents all children are direct flex items of .quiz-page.
-   order:1 pushes action buttons after sidebar content, matching the current
-   single-column visual order (EV -> info -> settings -> buttons). */
-.action-buttons {
-  order: 1;
-}
 
 .hand-section {
   margin-bottom: 6px;
@@ -887,21 +881,39 @@ a {
   .quiz-page {
     display: grid;
     grid-template-columns: 1fr 320px;
-    gap: 24px;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "game side"
+      "actions side";
+    align-content: center;
+    justify-content: normal; /* neutralize the 601px+ flex centering leak */
+    gap: 0 24px;
+    min-height: 0; /* overflow safety: prevent grid from exceeding container */
   }
 
   .game-column {
+    grid-area: game;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
     text-align: center;
+    min-width: 0;  /* overflow safety: prevent content from stretching the grid column */
     min-height: 0;
+    /* overflow:hidden is safe here: card-deal animation uses translateY(-20px) which
+       only overshoots the top of the column, but align-content:center on the grid
+       guarantees vertical headroom above the game-column in all supported viewports
+       (smallest: 1024x605 has ~159px margin above cards). No clipping occurs. */
+    overflow: hidden;
   }
 
-  .action-buttons { order: 0; } /* back to DOM order inside game column */
+  .action-buttons {
+    grid-area: actions;
+    margin-top: 12px;
+    justify-self: center;
+  }
 
   .side-panel {
+    grid-area: side;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -924,9 +936,13 @@ a {
     margin: 0;
   }
 
-  /* Bigger cards: EV panel/info/settings moved out of the vertical stack (~140px freed).
-     Worst-case check (resolved + split + 2 AI): fixed elems ~178px + header/padding ~74px;
-     605px: mins 80+50+64=194 -> fits with ~159px margin; 1080px: caps 150+92+115=357 -> fits. */
+  /* Bigger cards: EV panel/info/settings (~140px) moved to sidebar, freeing vertical space.
+     Fixed elems in game column (resolved + split + 2 AI worst case):
+       header+padding ~74px, labels+gaps ~104px, result-area ~24px, continue-feedback ~20px,
+       action-buttons ~40px = ~262px total non-card height.
+     Card budget = viewport - 262px:
+       605px: mins 80+50+64=194 -> 194+262=456, fits with ~149px margin.
+       1080px: caps 150+92+115=357 -> 357+262=619, fits with ~461px margin. */
   .playing-card { height: clamp(80px, 13.5dvh, 150px); }
   .card-row-small .playing-card { height: clamp(50px, 8.5dvh, 92px); }
   .card-row-split .playing-card { height: clamp(64px, 11dvh, 115px); }
